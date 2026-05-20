@@ -2972,7 +2972,10 @@
             editingId = null;
             updateDayOptions();
             document.getElementById('activityModalTitle').textContent = '新增活動';
-            document.getElementById('activityDay').value = 1;
+            // 自動帶入目前篩選的天（不是 all 才帶入）
+            const defaultDay = (currentItineraryDay && currentItineraryDay !== 'all')
+                ? currentItineraryDay : 1;
+            document.getElementById('activityDay').value = defaultDay;
             document.getElementById('activityCheckTime').value  = '';
             document.getElementById('activityCheckLabel').value = '';
             document.getElementById('activityIcon').value = '';
