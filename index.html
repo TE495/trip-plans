@@ -3038,7 +3038,7 @@
         function saveActivity(e) {
             e.preventDefault();
             const activity = {
-                id: editingId || Math.max(...appData.activities.map(a => a.id), 0) + 1,
+                id: editingId || (appData.activities.length === 0 ? 1 : Math.max(...appData.activities.map(a => a.id)) + 1),
                 day: parseInt(document.getElementById('activityDay').value),
                 checkTime:  document.getElementById('activityCheckTime').value,
                 checkLabel: document.getElementById('activityCheckLabel').value.trim(),
@@ -3415,7 +3415,7 @@
         function saveExpense(e) {
             e.preventDefault();
             const expense = {
-                id: editingId || Math.max(...appData.expenses.map(e => e.id), 0) + 1,
+                id: editingId || (appData.expenses.length === 0 ? 1 : Math.max(...appData.expenses.map(e => e.id)) + 1),
                 icon: document.getElementById('expenseIcon').value,
                 name: document.getElementById('expenseName').value,
                 detail: document.getElementById('expenseDetail').value,
@@ -3466,7 +3466,7 @@
         function saveChecklistItem(e) {
             e.preventDefault();
             const item = {
-                id: editingId || Math.max(...appData.checklists.map(i => i.id), 0) + 1,
+                id: editingId || (appData.checklists.length === 0 ? 1 : Math.max(...appData.checklists.map(i => i.id)) + 1),
                 category: document.getElementById('checklistCategory').value,
                 content: document.getElementById('checklistContent').value,
                 completed: editingId ? appData.checklists.find(i => i.id === editingId).completed : false
@@ -3751,7 +3751,7 @@
         function savePlace(e) {
             e.preventDefault();
             const place = {
-                id: editingPlaceId || Math.max(0, ...appData.extraPlaces.map(p => p.id)) + 1,
+                id: editingPlaceId || (appData.extraPlaces.length === 0 ? 1 : Math.max(...appData.extraPlaces.map(p => p.id)) + 1),
                 icon:     document.getElementById('placeIcon').value     || '📍',
                 name:     document.getElementById('placeName').value,
                 location: document.getElementById('placeLocation').value,
