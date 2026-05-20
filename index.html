@@ -4070,10 +4070,10 @@
         }
         db = firebase.database();
 
-        // Safari WebSocket 問題：先斷線再重連，強制建立乾淨的連線
+        // Safari WebSocket 問題：先完全斷線再重連，強制清除舊 session
         if (isSafari) {
             db.goOffline();
-            setTimeout(() => db.goOnline(), 100);
+            setTimeout(() => db.goOnline(), 800);
         }
 
         // Firebase 連線狀態監聽
@@ -4172,12 +4172,12 @@
         let firstLoad = true;
         let resolved  = false;
 
-        // 逾時保護
-        const timeoutId = setTimeout(() => {
-            if (!resolved) {
-                setSyncStatus('error', '連線逾時');
-            }
-        }, 12000);
+        // Safari：建立 listener 前先強制重連
+        const attachListener = () => {
+            // 逾時保護
+            const timeoutId = setTimeout(() => {
+                if (!resolved) setSyncStatus('error', '連線逾時');
+            }, 12000);
 
         fbListener = ref.on('value', snap => {
             resolved = true;
@@ -4224,6 +4224,14 @@
             console.error('Firebase error', err);
             setSyncStatus('error', '同步失敗');
         });
+        }; // end attachListener
+
+        if (isSafari) {
+            db.goOffline();
+            setTimeout(() => { db.goOnline(); attachListener(); }, 500);
+        } else {
+            attachListener();
+        }
     }
 
     // ── 邀請：複製連結或分享房間碼 ──
