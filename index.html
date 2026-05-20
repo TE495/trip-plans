@@ -4,6 +4,11 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="theme-color" content="#00A8A8">
+    <!-- 防快取：每次上傳 GitHub 時更新版本號 -->
+    <meta name="version" content="20250521-01">
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+    <meta http-equiv="Pragma" content="no-cache">
+    <meta http-equiv="Expires" content="0">
     <title>旅遊行程規劃</title>
 
     <!-- Open Graph：控制 LINE / FB / iMessage 連結預覽 -->
@@ -1730,6 +1735,7 @@
                     <div class="sync-dot" id="syncDot"></div>
                     <span id="syncLabel">未連線</span>
                 </div>
+                <button class="sync-btn" id="syncRetryBtn" style="display:none;" onclick="retryConnection()">重試</button>
                 <button class="sync-btn" onclick="showRoomModal()">換房間</button>
                 <button class="sync-btn" onclick="shareRoom()">邀請</button>
             </div>
@@ -4021,6 +4027,16 @@
     firebase.initializeApp(firebaseConfig);
     const db = firebase.database();
 
+    // ── 監聽 Firebase 連線狀態 ──
+    db.ref('.info/connected').on('value', snap => {
+        if (snap.val() === true) {
+            if (currentRoom && document.getElementById('syncLabel').textContent === '連線逾時') {
+                // 連線恢復，重新加入房間
+                joinRoom(currentRoom);
+            }
+        }
+    });
+
     // ── 狀態 ──
     let currentRoom    = localStorage.getItem('okinawaRoom') || null;
     let isSyncing      = false;   // 避免 onValue 觸發自己的 saveData 造成迴圈
@@ -4028,10 +4044,22 @@
 
     // ── UI helpers ──
     function setSyncStatus(state, label) {
-        const dot = document.getElementById('syncDot');
-        const lbl = document.getElementById('syncLabel');
+        const dot  = document.getElementById('syncDot');
+        const lbl  = document.getElementById('syncLabel');
+        const retry = document.getElementById('syncRetryBtn');
         dot.className = 'sync-dot ' + state;
         lbl.textContent = label;
+        // 逾時或失敗時顯示重試按鈕
+        if (retry) retry.style.display = (state === 'error') ? '' : 'none';
+    }
+
+    function retryConnection() {
+        if (currentRoom) {
+            joinRoom(currentRoom);
+        } else {
+            // 強制重新整理清快取
+            window.location.href = window.location.href.split('?')[0] + '?v=' + Date.now();
+        }
     }
 
     function setRoomCode(code) {
@@ -4072,13 +4100,14 @@
         setSyncStatus('syncing', '連線中…');
 
         const ref = db.ref(`rooms/${code}/data`);
+        ref.keepSynced(true); // 手機背景也保持同步
 
-        // 連線逾時保護：10 秒還沒連上就顯示提示
+        // 連線逾時保護：6 秒還沒連上就顯示提示
         const timeoutId = setTimeout(() => {
             if (document.getElementById('syncLabel').textContent === '連線中…') {
                 setSyncStatus('error', '連線逾時');
             }
-        }, 10000);
+        }, 6000);
 
         ref.once('value').then(snap => {
             clearTimeout(timeoutId);
