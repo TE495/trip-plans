@@ -3053,6 +3053,8 @@
         }
 
         // 活動編輯函數
+        let insertAfterActivityId = undefined; // null = 插在最前面，undefined = 加在最後
+
         function openAddActivityModal() {
             editingId = null;
             insertAfterActivityId = undefined;
@@ -3801,7 +3803,6 @@
         }
 
         // ── 地圖頁 ──
-        let insertAfterActivityId = undefined; // null = 插在最前面，undefined = 加在最後
 
         function openInsertActivity(day, afterId) {
             insertAfterActivityId = afterId; // null 表示插在最前，有 id 表示插在該活動後
