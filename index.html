@@ -4093,65 +4093,62 @@
     // ── 加入房間 ──
     function joinRoom(code) {
         closeRoomModal();
-        if (fbListener) fbListener();   // 取消舊 listener
+        if (fbListener) {
+            try { fbListener(); } catch(e) {}
+            fbListener = null;
+        }
         currentRoom = code;
         localStorage.setItem('okinawaRoom', code);
         setRoomCode(code);
         setSyncStatus('syncing', '連線中…');
 
         const ref = db.ref(`rooms/${code}/data`);
-        ref.keepSynced(true); // 手機背景也保持同步
+        ref.keepSynced(true);
 
-        // 連線逾時保護：6 秒還沒連上就顯示提示
+        let firstLoad = true;
+
+        // 逾時保護
         const timeoutId = setTimeout(() => {
             if (document.getElementById('syncLabel').textContent === '連線中…') {
                 setSyncStatus('error', '連線逾時');
             }
-        }, 6000);
+        }, 8000);
 
-        ref.once('value').then(snap => {
+        // 用單一 on('value') 處理第一次讀取 + 後續即時更新
+        fbListener = ref.on('value', snap => {
             clearTimeout(timeoutId);
-            if (!snap || !snap.exists()) {
-                // 新房間或空房間，先上傳本地資料
-                return ref.set(appData);
-            } else {
-                // 房間已有資料，立刻套用
-                isSyncing = true;
-                appData = snap.val();
-                migrateData();
-                localStorage.setItem('okinawaData', JSON.stringify(appData));
-                initBanner();
-                renderTripHeader();
-                renderItinerary();
-                renderExpense();
-                renderChecklist();
-                renderInfo();
-                setSyncStatus('connected', '已同步');
-                isSyncing = false;
+
+            if (firstLoad) {
+                firstLoad = false;
+                if (!snap || !snap.exists()) {
+                    // 新房間 → 上傳本地資料
+                    isSyncing = true;
+                    ref.set(appData)
+                        .then(() => { setSyncStatus('connected', '已同步'); isSyncing = false; })
+                        .catch(() => { setSyncStatus('error', '上傳失敗'); isSyncing = false; });
+                    return;
+                }
             }
-        }).then(() => {
-            // 開始即時監聽後續變更
-            fbListener = ref.on('value', snap => {
-                if (!snap || !snap.exists()) return;
-                if (isSyncing) return; // 避免自己觸發自己
-                isSyncing = true;
-                appData = snap.val();
-                migrateData();
-                localStorage.setItem('okinawaData', JSON.stringify(appData));
-                initBanner();
-                renderTripHeader();
-                renderItinerary();
-                renderExpense();
-                renderChecklist();
-                renderInfo();
-                setSyncStatus('connected', '已同步');
-                isSyncing = false;
-            }, err => {
-                setSyncStatus('error', '同步失敗');
-            });
-        }).catch(() => {
+
+            if (!snap || !snap.exists()) return;
+            if (isSyncing) return;
+
+            isSyncing = true;
+            appData = snap.val();
+            migrateData();
+            localStorage.setItem('okinawaData', JSON.stringify(appData));
+            initBanner();
+            renderTripHeader();
+            renderItinerary();
+            renderExpense();
+            renderChecklist();
+            renderInfo();
+            setSyncStatus('connected', '已同步');
+            isSyncing = false;
+
+        }, err => {
             clearTimeout(timeoutId);
-            setSyncStatus('error', '連線失敗');
+            setSyncStatus('error', '同步失敗');
         });
     }
 
