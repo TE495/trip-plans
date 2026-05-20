@@ -3132,20 +3132,36 @@
                 appData.activities[index] = activity;
             } else if (insertAfterActivityId === null) {
                 // 插到當天最前面
-                const day = activity.day;
-                const firstIdx = appData.activities.findIndex(a => a.day === day);
-                if (firstIdx === -1) appData.activities.push(activity);
-                else appData.activities.splice(firstIdx, 0, activity);
+                const dayActs = appData.activities.filter(a => a.day === activity.day);
+                const others  = appData.activities.filter(a => a.day !== activity.day);
+                appData.activities = [...others, activity, ...dayActs].sort((a,b) => a.day - b.day);
             } else if (insertAfterActivityId !== undefined) {
                 // 插到指定活動後面
-                const afterIdx = appData.activities.findIndex(a => a.id === insertAfterActivityId);
-                if (afterIdx === -1) appData.activities.push(activity);
-                else appData.activities.splice(afterIdx + 1, 0, activity);
+                const targetDay = activity.day;
+                const dayActs   = appData.activities.filter(a => a.day === targetDay);
+                const others    = appData.activities.filter(a => a.day !== targetDay);
+                const afterIdx  = dayActs.findIndex(a => a.id === insertAfterActivityId);
+                
+                if (afterIdx === -1) {
+                    // 找不到目標活動，加在該天最後
+                    dayActs.push(activity);
+                } else {
+                    // 插在目標活動後面
+                    dayActs.splice(afterIdx + 1, 0, activity);
+                }
+                
+                appData.activities = [...others, ...dayActs].sort((a,b) => a.day - b.day);
             } else {
-                // 一般新增：加在最後
+                // 一般新增：加在該天最後
                 appData.activities.push(activity);
             }
             insertAfterActivityId = undefined;
+
+            // 確保 activities 按 day 排序（避免插入位置錯亂）
+            appData.activities.sort((a, b) => {
+                if (a.day !== b.day) return a.day - b.day;
+                return 0; // 同天的保持原順序
+            });
 
             saveData();
             renderItinerary();
