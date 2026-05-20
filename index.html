@@ -4102,7 +4102,8 @@
         setSyncStatus('syncing', '連線中…');
 
         const ref = db.ref(`rooms/${code}/data`);
-        ref.keepSynced(true);
+        // keepSynced 在某些 SDK 版本不支援，用 try-catch 保護
+        try { if (ref.keepSynced) ref.keepSynced(true); } catch(e) {}
 
         let firstLoad = true;
 
