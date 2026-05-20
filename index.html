@@ -5,31 +5,8 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="theme-color" content="#00A8A8">
     <!-- 版本號：每次上傳 GitHub 時更新，控制快取更新 -->
-    <meta name="version" content="20250521-04">
+    <meta name="version" content="20250521-05">
     <title>旅遊行程規劃</title>
-
-    <!-- 版本檢查：清除過時快取 -->
-    <script>
-        (function() {
-            const CURRENT_VERSION = '20250521-04';
-            const storedVersion = localStorage.getItem('appVersion');
-            if (storedVersion !== CURRENT_VERSION) {
-                console.log('[Version Check] Clearing old cache, upgrading from', storedVersion, 'to', CURRENT_VERSION);
-                // 不清除 okinawaRoom（房間碼要保留），只清除可能有問題的資料
-                const room = localStorage.getItem('okinawaRoom');
-                localStorage.clear();
-                if (room) localStorage.setItem('okinawaRoom', room);
-                localStorage.setItem('appVersion', CURRENT_VERSION);
-                
-                // 如果有 Service Worker，清除它
-                if ('serviceWorker' in navigator) {
-                    navigator.serviceWorker.getRegistrations().then(registrations => {
-                        registrations.forEach(reg => reg.unregister());
-                    });
-                }
-            }
-        })();
-    </script>
 
     <!-- Open Graph：控制 LINE / FB / iMessage 連結預覽 -->
     <meta property="og:title"       content="🇯🇵 沖繩之旅 2026">
