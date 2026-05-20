@@ -4024,6 +4024,11 @@
         appId:             "1:155129370619:web:e12e87807651dd9ddf5d5e",
         databaseURL:       "https://okinawa-travel-966a1-default-rtdb.asia-southeast1.firebasedatabase.app"
     };
+    // ── 狀態（必須在 Firebase 初始化前宣告）──
+    let currentRoom    = localStorage.getItem('okinawaRoom') || null;
+    let isSyncing      = false;
+    let fbListener     = null;
+
     firebase.initializeApp(firebaseConfig);
     const db = firebase.database();
 
@@ -4031,16 +4036,10 @@
     db.ref('.info/connected').on('value', snap => {
         if (snap.val() === true) {
             if (currentRoom && document.getElementById('syncLabel').textContent === '連線逾時') {
-                // 連線恢復，重新加入房間
                 joinRoom(currentRoom);
             }
         }
     });
-
-    // ── 狀態 ──
-    let currentRoom    = localStorage.getItem('okinawaRoom') || null;
-    let isSyncing      = false;   // 避免 onValue 觸發自己的 saveData 造成迴圈
-    let fbListener     = null;    // 目前的 Firebase listener
 
     // ── UI helpers ──
     function setSyncStatus(state, label) {
@@ -4118,19 +4117,19 @@
         fbListener = ref.on('value', snap => {
             clearTimeout(timeoutId);
 
-            if (firstLoad) {
-                firstLoad = false;
-                if (!snap || !snap.exists()) {
+            if (!snap || !snap.exists()) {
+                if (firstLoad) {
                     // 新房間 → 上傳本地資料
+                    firstLoad = false;
                     isSyncing = true;
                     ref.set(appData)
                         .then(() => { setSyncStatus('connected', '已同步'); isSyncing = false; })
                         .catch(() => { setSyncStatus('error', '上傳失敗'); isSyncing = false; });
-                    return;
                 }
+                return;
             }
 
-            if (!snap || !snap.exists()) return;
+            firstLoad = false;
             if (isSyncing) return;
 
             isSyncing = true;
