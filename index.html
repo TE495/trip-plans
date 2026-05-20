@@ -4,11 +4,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="theme-color" content="#00A8A8">
-    <!-- 防快取：每次上傳 GitHub 時更新版本號 -->
-    <meta name="version" content="20250521-01">
-    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
-    <meta http-equiv="Pragma" content="no-cache">
-    <meta http-equiv="Expires" content="0">
+    <!-- 版本號：每次上傳 GitHub 時更新，控制快取更新 -->
+    <meta name="version" content="20250521-02">
     <title>旅遊行程規劃</title>
 
     <!-- Open Graph：控制 LINE / FB / iMessage 連結預覽 -->
@@ -4161,17 +4158,29 @@
     let fbListener     = null;
     let ignoreNextSnapshot = false;
 
-    firebase.initializeApp(firebaseConfig);
-    const db = firebase.database();
-
-    // ── 監聽 Firebase 連線狀態 ──
-    db.ref('.info/connected').on('value', snap => {
-        if (snap.val() === true) {
-            if (currentRoom && document.getElementById('syncLabel').textContent === '連線逾時') {
-                joinRoom(currentRoom);
-            }
+    let db = null;
+    try {
+        if (!firebase.apps.length) {
+            firebase.initializeApp(firebaseConfig);
         }
-    });
+        db = firebase.database();
+
+        // Firebase 連線狀態監聽 - Safari 上要等 db 就緒
+        db.ref('.info/connected').on('value', snap => {
+            const connected = snap && snap.val() === true;
+            if (connected && currentRoom) {
+                const lbl = document.getElementById('syncLabel');
+                if (lbl && (lbl.textContent === '連線逾時' || lbl.textContent === '同步失敗')) {
+                    joinRoom(currentRoom);
+                }
+            }
+        }, err => {
+            console.warn('connected listener error:', err);
+        });
+    } catch(e) {
+        console.error('Firebase init failed:', e);
+        alert('Firebase 初始化失敗，請重新整理頁面。錯誤訊息：' + e.message);
+    }
 
     // ── UI helpers ──
     function setSyncStatus(state, label) {
@@ -4225,6 +4234,10 @@
     let currentRef = null; // 保存目前 Firebase ref 以便正確 off
 
     function joinRoom(code) {
+        if (!db) {
+            setSyncStatus('error', 'Firebase 未就緒');
+            return;
+        }
         closeRoomModal();
         // 正確取消舊的 listener
         if (currentRef) {
