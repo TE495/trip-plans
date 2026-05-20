@@ -5,8 +5,31 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="theme-color" content="#00A8A8">
     <!-- 版本號：每次上傳 GitHub 時更新，控制快取更新 -->
-    <meta name="version" content="20250521-02">
+    <meta name="version" content="20250521-04">
     <title>旅遊行程規劃</title>
+
+    <!-- 版本檢查：清除過時快取 -->
+    <script>
+        (function() {
+            const CURRENT_VERSION = '20250521-04';
+            const storedVersion = localStorage.getItem('appVersion');
+            if (storedVersion !== CURRENT_VERSION) {
+                console.log('[Version Check] Clearing old cache, upgrading from', storedVersion, 'to', CURRENT_VERSION);
+                // 不清除 okinawaRoom（房間碼要保留），只清除可能有問題的資料
+                const room = localStorage.getItem('okinawaRoom');
+                localStorage.clear();
+                if (room) localStorage.setItem('okinawaRoom', room);
+                localStorage.setItem('appVersion', CURRENT_VERSION);
+                
+                // 如果有 Service Worker，清除它
+                if ('serviceWorker' in navigator) {
+                    navigator.serviceWorker.getRegistrations().then(registrations => {
+                        registrations.forEach(reg => reg.unregister());
+                    });
+                }
+            }
+        })();
+    </script>
 
     <!-- Open Graph：控制 LINE / FB / iMessage 連結預覽 -->
     <meta property="og:title"       content="🇯🇵 沖繩之旅 2026">
@@ -4154,25 +4177,33 @@
 
     let db = null;
     try {
+        console.log('[Firebase] Initializing...');
         if (!firebase.apps.length) {
             firebase.initializeApp(firebaseConfig);
+            console.log('[Firebase] initializeApp done');
+        } else {
+            console.log('[Firebase] Already initialized');
         }
         db = firebase.database();
+        console.log('[Firebase] database() done, db:', db ? 'OK' : 'NULL');
 
         // Firebase 連線狀態監聽 - Safari 上要等 db 就緒
         db.ref('.info/connected').on('value', snap => {
             const connected = snap && snap.val() === true;
+            console.log('[Firebase] .info/connected:', connected);
             if (connected && currentRoom) {
                 const lbl = document.getElementById('syncLabel');
                 if (lbl && (lbl.textContent === '連線逾時' || lbl.textContent === '同步失敗')) {
+                    console.log('[Firebase] Auto-reconnect triggered');
                     joinRoom(currentRoom);
                 }
             }
         }, err => {
-            console.warn('connected listener error:', err);
+            console.error('[Firebase] connected listener error:', err);
         });
+        console.log('[Firebase] Setup complete');
     } catch(e) {
-        console.error('Firebase init failed:', e);
+        console.error('[Firebase] Init FAILED:', e);
         alert('Firebase 初始化失敗，請重新整理頁面。錯誤訊息：' + e.message);
     }
 
@@ -4258,7 +4289,7 @@
             if (!resolved) {
                 setSyncStatus('error', '連線逾時');
             }
-        }, 8000);
+        }, 12000);
 
         fbListener = ref.on('value', snap => {
             resolved = true;
