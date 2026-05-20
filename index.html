@@ -1801,6 +1801,11 @@
 
         <!-- 地圖標籤頁 -->
         <div id="map" class="tab-content">
+            <div class="toolbar">
+                <div class="toolbar-left">
+                    <button class="btn-primary" onclick="openAddPlaceModal()">➕ 新增景點</button>
+                </div>
+            </div>
             <div id="map-filter"></div>
             <div id="map-list"></div>
         </div>
@@ -2106,6 +2111,44 @@
         </div>
     </div>
 
+    <!-- 額外景點 Modal -->
+    <div id="placeModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 id="placeModalTitle">📌 新增景點</h2>
+                <button class="close-btn" onclick="closeModal('placeModal')">✕</button>
+            </div>
+            <form onsubmit="savePlace(event)">
+                <div class="form-group">
+                    <label>圖示 (emoji)</label>
+                    <input type="text" id="placeIcon" placeholder="例: 🍜" required>
+                </div>
+                <div class="form-group">
+                    <label>景點名稱</label>
+                    <input type="text" id="placeName" placeholder="例: 首里城" required>
+                </div>
+                <div class="form-group">
+                    <label>地址 / 地點</label>
+                    <input type="text" id="placeLocation" placeholder="例: 那霸市首里" required>
+                </div>
+                <div class="form-group">
+                    <label>分配到（選填）</label>
+                    <select id="placeDay" style="width:100%;padding:10px;border:2px solid var(--border);border-radius:6px;font-size:13px;">
+                        <option value="0">📌 未排程（想去清單）</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>備註</label>
+                    <input type="text" id="placeNotes" placeholder="例: 推薦的店家、營業時間">
+                </div>
+                <div style="display:flex;gap:8px;margin-top:16px;">
+                    <button type="submit" class="btn-save">💾 保存</button>
+                    <button type="button" class="btn-cancel" onclick="closeModal('placeModal')">取消</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
     <!-- 航班編輯 Modal -->
     <div id="flightModal" class="modal">
         <div class="modal-content">
@@ -2200,66 +2243,34 @@
         // 初始化數據結構
         const DEFAULT_DATA = {
             trip: {
-                emoji: '🇯🇵',
-                title: '沖繩之旅',
-                startDate: '2026-07-16',
-                endDate: '2026-07-20',
-                description: '5日4夜'
+                emoji: '🌏',
+                title: '我的旅行',
+                startDate: '',
+                endDate: '',
+                description: ''
             },
             dayTitles: [
                 '',
-                { emoji: '🍤', title: '國際通' },
-                { emoji: '🦀', title: '慶良間浮潛' },
-                { emoji: '🐬', title: '沖繩北部' },
-                { emoji: '⛩️', title: '自由時間' },
-                { emoji: '✈️', title: '回高雄' }
+                { emoji: '📍', title: 'Day 1' },
+                { emoji: '📍', title: 'Day 2' },
+                { emoji: '📍', title: 'Day 3' },
+                { emoji: '📍', title: 'Day 4' },
+                { emoji: '📍', title: 'Day 5' }
             ],
-            activities: [
-                { id: 1, day: 1, icon: '✈️', title: '高雄KHH → 沖繩OKA', time: '16:15 - 18:40 | 虎航IT728', location: '高雄小港機場', notes: '', transport: { type: '', duration: '' } },
-                { id: 2, day: 1, icon: '🏨', title: '入住飯店', time: '19:30 - 22:00', location: 'Comfort Hotel Naha Prefectural Office', notes: '從機場搭單軌電車到縣廳前站', transport: { type: '🚝 單軌電車', duration: '15分' } },
-                { id: 3, day: 1, icon: '🍜', title: '國際通晚餐', time: '19:30之後', location: '國際通', notes: '', transport: { type: '🚶 步行', duration: '10分' } },
-                { id: 4, day: 2, icon: '🤿', title: '慶良間浮潛 + 拖曳傘', time: '07:20 - 12:00', location: '那霸縣廳前阿蒙特飯店', notes: '集合點', transport: { type: '', duration: '' } },
-                { id: 5, day: 2, icon: '🍤', title: '午餐', time: '12:30 - 14:00', location: '那霸市區', notes: '', transport: { type: '', duration: '' } },
-                { id: 6, day: 2, icon: '🎤', title: '琉歌（傳統表演）', time: '晚上', location: '琉歌', notes: '', transport: { type: '', duration: '' } },
-                { id: 7, day: 3, icon: '🏔️', title: 'KKday 一日遊', time: '08:10 - 18:30', location: 'Blue Seal Palette久茂地店', notes: '集合點', transport: { type: '', duration: '' } },
-                { id: 8, day: 4, icon: '🛍️', title: '購物 / 探險 / 休閒', time: '全天', location: '那霸市', notes: '', transport: { type: '', duration: '' } },
-                { id: 9, day: 5, icon: '🚌', title: '搭乘單軌電車去機場', time: '07:00 出發', location: '沖繩那霸機場', notes: '', transport: { type: '', duration: '' } },
-                { id: 10, day: 5, icon: '✈️', title: '沖繩OKA → 高雄KHH', time: '10:30 - 11:20 | 虎航IT728', location: '沖繩那霸機場', notes: '', transport: { type: '', duration: '' } }
-            ],
-            expenses: [
-                { id: 1, icon: '✈️', name: '往返機票', detail: '虎航 IT728 往返', amount: 11710, category: '交通' },
-                { id: 2, icon: '🏨', name: '住宿 (4夜)', detail: 'Comfort Hotel Naha', amount: 10255, category: '住宿' },
-                { id: 3, icon: '🤿', name: '慶良間浮潛', detail: '浮潛 + 拖曳傘體驗', amount: 5585, category: '活動' },
-                { id: 4, icon: '🐬', name: 'KKday 北部一日遊', detail: '5景點遊覽團', amount: 1352, category: '活動' }
-            ],
-            checklists: [
-                { id: 1, category: '準備', content: '護照檢查（有效期6個月以上）', completed: false },
-                { id: 2, category: '準備', content: '確認機票預訂確認', completed: false },
-                { id: 3, category: '準備', content: '飯店訂單列印/截圖', completed: false },
-                { id: 4, category: '準備', content: '兌換日幣 / 確認信用卡', completed: false },
-                { id: 5, category: '打包', content: '護照/身份證', completed: false },
-                { id: 6, category: '打包', content: '泳衣 × 2（浮潛用）', completed: false },
-                { id: 7, category: '打包', content: '防曬乳 SPF 50+', completed: false },
-                { id: 8, category: '打包', content: '輕薄雨具', completed: false }
-            ],
+            activities: [],
+            extraPlaces: [],
+            expenses: [],
+            checklists: [],
             info: {
-                flightOut: { time: '16:15', from: '高雄(KHH)', to: '沖繩(OKA)', duration: '1h 25m' },
-                flightReturn: { time: '10:30', from: '沖繩(OKA)', to: '高雄(KHH)', duration: '1h 50m' },
-                hotels: [
-                    {
-                        id: 1,
-                        name: 'Comfort Hotel Naha Prefectural Office',
-                        mapUrl: 'https://maps.app.goo.gl/example',
-                        platform: 'Booking.com',
-                        bookingId: 'IN1601213592',
-                        checkIn: '2026-07-16',
-                        checkOut: '2026-07-20'
-                    }
-                ]
+                flightOut:    { time: '', from: '', to: '', duration: '' },
+                flightReturn: { time: '', from: '', to: '', duration: '' },
+                hotels: []
             }
         };
-
-        let appData = JSON.parse(localStorage.getItem('okinawaData')) || JSON.parse(JSON.stringify(DEFAULT_DATA));
+        // 有房間碼才讀 localStorage 資料；沒房間碼用空白範本（等使用者選擇加入或建立）
+        let appData = localStorage.getItem('okinawaRoom')
+            ? (JSON.parse(localStorage.getItem('okinawaData')) || JSON.parse(JSON.stringify(DEFAULT_DATA)))
+            : JSON.parse(JSON.stringify(DEFAULT_DATA));
         let editingId = null;
         let editingDayId = null;
 
@@ -2546,6 +2557,11 @@
                 if (!a.images) a.images = [];
                 if (!a.transport) a.transport = { type: '', duration: '' };
             });
+
+            // extraPlaces（額外景點）
+            if (!appData.extraPlaces || !Array.isArray(appData.extraPlaces)) {
+                appData.extraPlaces = [];
+            }
 
             // expenses
             if (!appData.expenses || !Array.isArray(appData.expenses)) {
@@ -3792,6 +3808,77 @@
         }
 
         let currentMapDay = 'all';
+        let editingPlaceId = null;
+
+        // ── 額外景點 CRUD ──
+        function openAddPlaceModal() {
+            editingPlaceId = null;
+            document.getElementById('placeModalTitle').textContent = '📌 新增景點';
+            document.getElementById('placeIcon').value     = '📍';
+            document.getElementById('placeName').value     = '';
+            document.getElementById('placeLocation').value = '';
+            document.getElementById('placeNotes').value    = '';
+            updatePlaceDayOptions();
+            document.getElementById('placeDay').value = currentMapDay === 'all' ? '0' : String(currentMapDay);
+            openModal('placeModal');
+        }
+
+        function editPlace(id) {
+            editingPlaceId = id;
+            const p = appData.extraPlaces.find(p => p.id === id);
+            if (!p) return;
+            document.getElementById('placeModalTitle').textContent = '📌 編輯景點';
+            document.getElementById('placeIcon').value     = p.icon || '📍';
+            document.getElementById('placeName').value     = p.name || '';
+            document.getElementById('placeLocation').value = p.location || '';
+            document.getElementById('placeNotes').value    = p.notes || '';
+            updatePlaceDayOptions();
+            document.getElementById('placeDay').value = String(p.day || 0);
+            openModal('placeModal');
+        }
+
+        function updatePlaceDayOptions() {
+            const sel = document.getElementById('placeDay');
+            sel.innerHTML = '<option value="0">📌 未排程（想去清單）</option>';
+            const numDays = getTripDays();
+            for (let d = 1; d <= numDays; d++) {
+                const dt = appData.dayTitles[d];
+                const opt = document.createElement('option');
+                opt.value = d;
+                opt.textContent = `Day ${d} ${dt ? dt.emoji : ''} ${dt ? dt.title : ''}`;
+                sel.appendChild(opt);
+            }
+        }
+
+        function savePlace(e) {
+            e.preventDefault();
+            const place = {
+                id: editingPlaceId || Math.max(0, ...appData.extraPlaces.map(p => p.id)) + 1,
+                icon:     document.getElementById('placeIcon').value     || '📍',
+                name:     document.getElementById('placeName').value,
+                location: document.getElementById('placeLocation').value,
+                notes:    document.getElementById('placeNotes').value,
+                day:      parseInt(document.getElementById('placeDay').value) || 0
+            };
+            if (editingPlaceId) {
+                const idx = appData.extraPlaces.findIndex(p => p.id === editingPlaceId);
+                appData.extraPlaces[idx] = place;
+            } else {
+                appData.extraPlaces.push(place);
+            }
+            saveData();
+            renderMap(currentMapDay);
+            closeModal('placeModal');
+            showSuccessMessage('景點已保存！');
+        }
+
+        function deletePlace(id) {
+            if (!confirm('確定要刪除這個景點？')) return;
+            appData.extraPlaces = appData.extraPlaces.filter(p => p.id !== id);
+            saveData();
+            renderMap(currentMapDay);
+            showSuccessMessage('景點已刪除');
+        }
 
         function renderMap(filterDay) {
             currentMapDay = filterDay;
@@ -3801,27 +3888,40 @@
 
             // ── Filter 下拉選單 ──
             let opts = `<option value="all">🗺️ 全部地點</option>`;
+            opts += `<option value="unscheduled" ${filterDay === 'unscheduled' ? 'selected' : ''}>📌 未排程景點</option>`;
             for (let d = 1; d <= numDays; d++) {
                 const dt = appData.dayTitles[d];
                 opts += `<option value="${d}" ${filterDay === d ? 'selected' : ''}>Day ${d} ${dt ? dt.emoji : ''} ${dt ? dt.title : ''} · ${dayDates[d]}</option>`;
             }
             document.getElementById('map-filter').innerHTML =
-                `<select class="day-select" onchange="renderMap(this.value === 'all' ? 'all' : parseInt(this.value))">${opts}</select>`;
+                `<select class="day-select" onchange="renderMap(this.value === 'all' || this.value === 'unscheduled' ? this.value : parseInt(this.value))">${opts}</select>`;
             document.getElementById('map-filter').querySelector('select').value =
-                filterDay === 'all' ? 'all' : String(filterDay);
+                filterDay === 'all' || filterDay === 'unscheduled' ? filterDay : String(filterDay);
 
-            // ── 地點列表 ──
-            const days = {};
+            // ── 收集每天的地點：行程活動 + 額外景點 ──
+            const days = {};        // 排程地點
+            const unscheduled = []; // 未排程景點
+
             appData.activities.forEach(a => {
+                if (!a.location) return;
                 if (!days[a.day]) days[a.day] = [];
-                days[a.day].push(a);
+                days[a.day].push({ ...a, _type: 'activity' });
+            });
+
+            (appData.extraPlaces || []).forEach(p => {
+                if (!p.location) return;
+                if (p.day === 0 || !p.day) {
+                    unscheduled.push({ ...p, title: p.name, _type: 'extra' });
+                } else {
+                    if (!days[p.day]) days[p.day] = [];
+                    days[p.day].push({ ...p, title: p.name, _type: 'extra' });
+                }
             });
 
             let listHtml = '';
-            const targetDays = filterDay === 'all' ? Array.from({length: numDays}, (_, i) => i + 1) : [filterDay];
 
-            // 「全部在 Google Maps 開啟」按鈕（同一天篩選時才顯示，避免 URL 過長）
-            if (filterDay !== 'all') {
+            // ── 路線按鈕 ──
+            if (filterDay !== 'all' && filterDay !== 'unscheduled') {
                 const dayActivities = (days[filterDay] || []).filter(a => a.location);
                 if (dayActivities.length) {
                     const query = dayActivities.map(a => encodeURIComponent(a.location)).join('/');
@@ -3835,39 +3935,70 @@
                 }
             }
 
-            targetDays.forEach(day => {
-                const acts = (days[day] || []).filter(a => a.location);
-                if (!acts.length) return;
-
-                const dt = appData.dayTitles[day];
-                if (filterDay === 'all') {
-                    listHtml += `
-                        <div class="map-day-section">
-                            <div class="map-day-label">Day ${day} ${dt.emoji} ${dt.title} <span style="font-weight:400;color:#aaa;font-size:11px;">${dayDates[day]}</span></div>
-                    `;
-                } else {
-                    listHtml += `<div class="map-day-section">`;
+            // ── 渲染未排程景點 ──
+            if (filterDay === 'all' || filterDay === 'unscheduled') {
+                if (unscheduled.length > 0) {
+                    listHtml += `<div class="map-day-section">
+                        <div class="map-day-label">📌 未排程景點</div>`;
+                    unscheduled.forEach(p => listHtml += placeCardHtml(p));
+                    listHtml += `</div>`;
+                } else if (filterDay === 'unscheduled') {
+                    listHtml += `<p style="color:#aaa;text-align:center;padding:40px 0;">尚無未排程景點<br>點上方「新增景點」加入想去的地方</p>`;
                 }
+            }
 
-                acts.forEach((a, idx) => {
-                    const q   = encodeURIComponent(a.location);
-                    const url = `https://www.google.com/maps/search/${q}`;
-                    listHtml += `
-                        <a class="map-place-card" href="${url}" target="_blank" rel="noopener">
-                            <div class="map-place-icon">${a.icon}</div>
-                            <div class="map-place-body">
-                                <div class="map-place-title">${a.title}</div>
-                                <div class="map-place-loc">📍 ${a.location}</div>
-                                ${a.time ? `<div class="map-place-time">🕐 ${a.time}</div>` : ''}
-                            </div>
-                        </a>
-                    `;
+            // ── 渲染按天的地點 ──
+            if (filterDay !== 'unscheduled') {
+                const targetDays = filterDay === 'all'
+                    ? Array.from({length: numDays}, (_, i) => i + 1)
+                    : [filterDay];
+
+                targetDays.forEach(day => {
+                    const acts = days[day] || [];
+                    if (!acts.length) return;
+
+                    const dt = appData.dayTitles[day];
+                    if (filterDay === 'all') {
+                        listHtml += `
+                            <div class="map-day-section">
+                                <div class="map-day-label">Day ${day} ${dt ? dt.emoji : ''} ${dt ? dt.title : ''} <span style="font-weight:400;color:#aaa;font-size:11px;">${dayDates[day]}</span></div>
+                        `;
+                    } else {
+                        listHtml += `<div class="map-day-section">`;
+                    }
+
+                    acts.forEach(p => listHtml += placeCardHtml(p));
+                    listHtml += `</div>`;
                 });
+            }
 
-                listHtml += `</div>`;
-            });
+            document.getElementById('map-list').innerHTML = listHtml || '<p style="color:#aaa;text-align:center;padding:40px 0;">沒有地點資料<br>點上方「新增景點」加入</p>';
+        }
 
-            document.getElementById('map-list').innerHTML = listHtml || '<p style="color:#aaa;text-align:center;padding:40px 0;">沒有地點資料</p>';
+        function placeCardHtml(p) {
+            const q   = encodeURIComponent(p.location);
+            const url = `https://www.google.com/maps/search/${q}`;
+            const isExtra = p._type === 'extra';
+            const editBtns = isExtra
+                ? `<div style="display:flex;flex-direction:column;gap:3px;flex-shrink:0;margin-left:6px;">
+                    <button class="btn-sm btn-edit" style="padding:2px 6px;font-size:10px;" onclick="event.preventDefault();event.stopPropagation();editPlace(${p.id})">✏️</button>
+                    <button class="btn-sm btn-delete" style="padding:2px 6px;font-size:10px;" onclick="event.preventDefault();event.stopPropagation();deletePlace(${p.id})">🗑️</button>
+                  </div>`
+                : '';
+            return `
+                <div style="display:flex;align-items:center;">
+                    <a class="map-place-card" href="${url}" target="_blank" rel="noopener" style="flex:1;${isExtra ? 'background:#FFF9F0;border-color:#FFE5B4;' : ''}">
+                        <div class="map-place-icon">${p.icon || '📍'}</div>
+                        <div class="map-place-body">
+                            <div class="map-place-title">${p.title}${isExtra ? ' <span style="font-size:9px;color:#FF9F43;background:#FFE5B4;padding:1px 5px;border-radius:6px;margin-left:3px;">想去</span>' : ''}</div>
+                            <div class="map-place-loc">📍 ${p.location}</div>
+                            ${p.time ? `<div class="map-place-time">🕐 ${p.time}</div>` : ''}
+                            ${p.notes ? `<div class="map-place-time">📝 ${p.notes}</div>` : ''}
+                        </div>
+                    </a>
+                    ${editBtns}
+                </div>
+            `;
         }
 
         // ── 初始化 ──
@@ -4028,6 +4159,7 @@
     let currentRoom    = localStorage.getItem('okinawaRoom') || null;
     let isSyncing      = false;
     let fbListener     = null;
+    let ignoreNextSnapshot = false;
 
     firebase.initializeApp(firebaseConfig);
     const db = firebase.database();
@@ -4090,37 +4222,43 @@
     }
 
     // ── 加入房間 ──
+    let currentRef = null; // 保存目前 Firebase ref 以便正確 off
+
     function joinRoom(code) {
         closeRoomModal();
-        if (fbListener) {
-            try { fbListener(); } catch(e) {}
-            fbListener = null;
+        // 正確取消舊的 listener
+        if (currentRef) {
+            try { currentRef.off(); } catch(e) {}
+            currentRef = null;
         }
+        fbListener = null;
+        isSyncing = false; // 重置同步狀態
+
         currentRoom = code;
         localStorage.setItem('okinawaRoom', code);
         setRoomCode(code);
         setSyncStatus('syncing', '連線中…');
 
         const ref = db.ref(`rooms/${code}/data`);
-        // keepSynced 在某些 SDK 版本不支援，用 try-catch 保護
+        currentRef = ref;
         try { if (ref.keepSynced) ref.keepSynced(true); } catch(e) {}
 
         let firstLoad = true;
+        let resolved  = false;
 
         // 逾時保護
         const timeoutId = setTimeout(() => {
-            if (document.getElementById('syncLabel').textContent === '連線中…') {
+            if (!resolved) {
                 setSyncStatus('error', '連線逾時');
             }
         }, 8000);
 
-        // 用單一 on('value') 處理第一次讀取 + 後續即時更新
         fbListener = ref.on('value', snap => {
+            resolved = true;
             clearTimeout(timeoutId);
 
             if (!snap || !snap.exists()) {
                 if (firstLoad) {
-                    // 新房間 → 上傳本地資料
                     firstLoad = false;
                     isSyncing = true;
                     ref.set(appData)
@@ -4132,22 +4270,32 @@
 
             firstLoad = false;
             if (isSyncing) return;
+            if (ignoreNextSnapshot) {
+                ignoreNextSnapshot = false;
+                return;
+            }
 
             isSyncing = true;
-            appData = snap.val();
-            migrateData();
-            localStorage.setItem('okinawaData', JSON.stringify(appData));
-            initBanner();
-            renderTripHeader();
-            renderItinerary();
-            renderExpense();
-            renderChecklist();
-            renderInfo();
-            setSyncStatus('connected', '已同步');
+            try {
+                appData = snap.val();
+                migrateData();
+                localStorage.setItem('okinawaData', JSON.stringify(appData));
+                initBanner();
+                renderTripHeader();
+                renderItinerary();
+                renderExpense();
+                renderChecklist();
+                renderInfo();
+                setSyncStatus('connected', '已同步');
+            } catch (e) {
+                console.error('render error', e);
+                setSyncStatus('error', '載入錯誤');
+            }
             isSyncing = false;
 
         }, err => {
             clearTimeout(timeoutId);
+            console.error('Firebase error', err);
             setSyncStatus('error', '同步失敗');
         });
     }
@@ -4180,15 +4328,15 @@
         }
     }
 
-    // ── 覆寫 saveData，同步寫入 Firebase ──
     const _origSaveData = saveData;
     saveData = function() {
         localStorage.setItem('okinawaData', JSON.stringify(appData));
         if (currentRoom && !isSyncing) {
             setSyncStatus('syncing', '同步中…');
+            ignoreNextSnapshot = true;
             db.ref(`rooms/${currentRoom}/data`).set(appData)
                 .then(() => setSyncStatus('connected', '已同步'))
-                .catch(() => setSyncStatus('error', '同步失敗'));
+                .catch(() => { setSyncStatus('error', '同步失敗'); ignoreNextSnapshot = false; });
         }
     };
 
@@ -4219,13 +4367,10 @@
     }
 
     function welcomeNew() {
+        // 直接用乾淨的 DEFAULT_DATA（已是空白範本）
         appData = JSON.parse(JSON.stringify(DEFAULT_DATA));
-        appData.trip = { emoji: '🌏', title: '我的旅行', startDate: '', endDate: '', description: '' };
-        appData.activities = [];
-        appData.expenses   = [];
-        appData.checklists = [];
-        init();
         hideWelcome();
+        init();
         setMode('edit');
         const code = genCode();
         joinRoom(code);
