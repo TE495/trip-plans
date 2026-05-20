@@ -4285,36 +4285,8 @@
     function welcomeJoin() {
         const code = document.getElementById('welcomeRoomInput').value.trim().toUpperCase();
         if (code.length !== 6) { alert('請輸入 6 碼房間碼'); return; }
-        const btn = document.querySelector('.welcome-btn');
-        if (btn) { btn.textContent = '連線中…'; btn.disabled = true; }
-
-        if (!db) { alert('Firebase 未就緒，請重新整理'); return; }
-
-        // 用 ref.on 取代 ref.once（Safari 上 once 的 Promise 不穩定）
-        const testRef = db.ref(`rooms/${code}/data`);
-        let connected = false;
-
-        const timeoutId = setTimeout(() => {
-            if (!connected) {
-                testRef.off();
-                if (btn) { btn.textContent = '🔗 加入行程'; btn.disabled = false; }
-                alert('連線逾時，請稍後再試。');
-            }
-        }, 10000);
-
-        testRef.on('value', snap => {
-            if (connected) return; // 只處理第一次
-            connected = true;
-            clearTimeout(timeoutId);
-            testRef.off(); // 停止這個測試用 listener
-            hideWelcome();
-            joinRoom(code); // 交給正式的 joinRoom
-        }, err => {
-            clearTimeout(timeoutId);
-            testRef.off();
-            if (btn) { btn.textContent = '🔗 加入行程'; btn.disabled = false; }
-            alert('連線失敗，請稍後再試。');
-        });
+        hideWelcome();
+        joinRoom(code);
     }
 
     function welcomeNew() {
