@@ -504,58 +504,6 @@
         }
 
         /* ── 活動間插入按鈕 ── */
-        .insert-btn-wrap {
-            display: none;
-            justify-content: center;
-            align-items: center;
-            margin: 2px 0;
-            position: relative;
-        }
-
-        body:not(.view-mode) .insert-btn-wrap {
-            display: flex;
-        }
-
-        .insert-btn {
-            width: 24px;
-            height: 24px;
-            border-radius: 50%;
-            border: 2px solid var(--border);
-            background: white;
-            color: var(--primary);
-            font-size: 16px;
-            font-weight: 700;
-            cursor: pointer;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            transition: all 0.15s;
-            line-height: 1;
-            box-shadow: 0 1px 4px rgba(0,0,0,0.08);
-            opacity: 0;
-            transform: scale(0.8);
-        }
-
-        /* 行程時間軸區 hover 才顯示 */
-        .timeline:hover .insert-btn {
-            opacity: 1;
-            transform: scale(1);
-        }
-
-        .insert-btn:hover {
-            background: var(--primary);
-            color: white;
-            border-color: var(--primary);
-            transform: scale(1.15) !important;
-        }
-
-        /* 手機一直顯示 */
-        @media (hover: none) {
-            .insert-btn {
-                opacity: 1;
-                transform: scale(1);
-            }
-        }
         .empty-day-hint {
             display: flex;
             flex-direction: column;
@@ -2690,13 +2638,6 @@
                 activities.forEach((a, idx) => {
                     const locSafe = (a.location || '').replace(/'/g, "\\'");
 
-                    // 第一個活動前加插入按鈕（插入到最前面）
-                    if (idx === 0) {
-                        html += `<div class="insert-btn-wrap">
-                            <button class="insert-btn" onclick="openInsertActivity(${day}, null)" title="在此新增活動">＋</button>
-                        </div>`;
-                    }
-
                     // 本活動有 transport → 在它「之前」插入連接線（代表從上一站來）
                     if (idx > 0 && a.transport && (a.transport.type || a.transport.duration)) {
                         const t = a.transport;
@@ -2754,9 +2695,6 @@
                                     </div>
                                 </div>
                             </div>
-                        </div>
-                        <div class="insert-btn-wrap">
-                            <button class="insert-btn" onclick="openInsertActivity(${a.day}, ${a.id})" title="在此後方新增活動">＋</button>
                         </div>
                     `;
                 });
@@ -3030,11 +2968,8 @@
         }
 
         // 活動編輯函數
-        let insertAfterActivityId = undefined; // null = 插在最前面，undefined = 加在最後
-
         function openAddActivityModal() {
             editingId = null;
-            insertAfterActivityId = undefined;
             updateDayOptions();
             document.getElementById('activityModalTitle').textContent = '新增活動';
             document.getElementById('activityDay').value = 1;
@@ -3122,32 +3057,9 @@
             if (editingId) {
                 const index = appData.activities.findIndex(a => a.id === editingId);
                 appData.activities[index] = activity;
-            } else if (insertAfterActivityId === null) {
-                // 插到當天最前面
-                const dayActs = appData.activities.filter(a => a.day === activity.day);
-                const others  = appData.activities.filter(a => a.day !== activity.day);
-                appData.activities = [...others, activity, ...dayActs].sort((a,b) => a.day - b.day);
-            } else if (insertAfterActivityId !== undefined) {
-                // 插到指定活動後面
-                const targetDay = activity.day;
-                const dayActs   = appData.activities.filter(a => a.day === targetDay);
-                const others    = appData.activities.filter(a => a.day !== targetDay);
-                const afterIdx  = dayActs.findIndex(a => a.id === insertAfterActivityId);
-                
-                if (afterIdx === -1) {
-                    // 找不到目標活動，加在該天最後
-                    dayActs.push(activity);
-                } else {
-                    // 插在目標活動後面
-                    dayActs.splice(afterIdx + 1, 0, activity);
-                }
-                
-                appData.activities = [...others, ...dayActs].sort((a,b) => a.day - b.day);
             } else {
-                // 一般新增：加在該天最後
                 appData.activities.push(activity);
             }
-            insertAfterActivityId = undefined;
 
             saveData();
             renderItinerary();
@@ -3781,12 +3693,6 @@
 
         // ── 地圖頁 ──
 
-        function openInsertActivity(day, afterId) {
-            insertAfterActivityId = afterId; // null 表示插在最前，有 id 表示插在該活動後
-            openAddActivityModal();
-            document.getElementById('activityDay').value = day;
-        }
-
         function openAddActivityForDay(day) {
             openAddActivityModal();
             document.getElementById('activityDay').value = day;
@@ -4154,35 +4060,32 @@
     let ignoreNextSnapshot = false;
 
     let db = null;
+    const isSafari = /^((?!chrome|android).)*safari/i.test(navigator.userAgent);
     try {
-        console.log('[Firebase] Initializing...');
         if (!firebase.apps.length) {
             firebase.initializeApp(firebaseConfig);
-            console.log('[Firebase] initializeApp done');
-        } else {
-            console.log('[Firebase] Already initialized');
         }
         db = firebase.database();
-        console.log('[Firebase] database() done, db:', db ? 'OK' : 'NULL');
 
-        // Firebase 連線狀態監聽 - Safari 上要等 db 就緒
+        // Safari WebSocket 問題：先斷線再重連，強制建立乾淨的連線
+        if (isSafari) {
+            db.goOffline();
+            setTimeout(() => db.goOnline(), 100);
+        }
+
+        // Firebase 連線狀態監聽
         db.ref('.info/connected').on('value', snap => {
             const connected = snap && snap.val() === true;
-            console.log('[Firebase] .info/connected:', connected);
             if (connected && currentRoom) {
                 const lbl = document.getElementById('syncLabel');
                 if (lbl && (lbl.textContent === '連線逾時' || lbl.textContent === '同步失敗')) {
-                    console.log('[Firebase] Auto-reconnect triggered');
                     joinRoom(currentRoom);
                 }
             }
-        }, err => {
-            console.error('[Firebase] connected listener error:', err);
-        });
-        console.log('[Firebase] Setup complete');
+        }, err => {});
     } catch(e) {
-        console.error('[Firebase] Init FAILED:', e);
-        alert('Firebase 初始化失敗，請重新整理頁面。錯誤訊息：' + e.message);
+        console.error('Firebase init failed:', e);
+        alert('Firebase 初始化失敗，請重新整理頁面。');
     }
 
     // ── UI helpers ──
@@ -4197,11 +4100,15 @@
     }
 
     function retryConnection() {
-        if (currentRoom) {
-            joinRoom(currentRoom);
+        if (currentRoom && db) {
+            // 強制重建 Firebase 連線
+            db.goOffline();
+            setTimeout(() => {
+                db.goOnline();
+                joinRoom(currentRoom);
+            }, 300);
         } else {
-            // 強制重新整理清快取
-            window.location.href = window.location.href.split('?')[0] + '?v=' + Date.now();
+            window.location.reload();
         }
     }
 
