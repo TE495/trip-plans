@@ -797,15 +797,6 @@
             background: #FF5252;
         }
 
-        .btn-map {
-            background: var(--secondary);
-            color: white;
-        }
-
-        .btn-map:hover {
-            background: #3DB5AF;
-        }
-
         /* 模態視窗 */
         .modal {
             display: none;
@@ -2758,7 +2749,6 @@
                                         <div class="activity-thumb-add" onclick="triggerActivityImgUpload(${a.id})" title="新增圖片">📎</div>
                                     </div>`}
                                     <div class="activity-buttons">
-                                        <button class="btn-sm btn-map"    onclick="openMap('${locSafe}')">🗺️ 地圖</button>
                                         <button class="btn-sm btn-edit"   onclick="editActivity(${a.id})">✏️ 編輯</button>
                                         <button class="btn-sm btn-delete" onclick="deleteActivity(${a.id})">🗑️ 刪除</button>
                                     </div>
@@ -3156,12 +3146,6 @@
                 appData.activities.push(activity);
             }
             insertAfterActivityId = undefined;
-
-            // 確保 activities 按 day 排序（避免插入位置錯亂）
-            appData.activities.sort((a, b) => {
-                if (a.day !== b.day) return a.day - b.day;
-                return 0; // 同天的保持原順序
-            });
 
             saveData();
             renderItinerary();
@@ -3779,12 +3763,6 @@
         }
 
         // 點擊模態外部關閉
-        document.addEventListener('click', (e) => {
-            if (e.target.classList.contains('modal')) {
-                e.target.classList.remove('active');
-            }
-        });
-
         // 模式切換（瀏覽 / 編輯）
         function setMode(mode) {
             if (mode === 'view') {
