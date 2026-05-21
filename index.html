@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="theme-color" content="#00A8A8">
     <!-- 版本號：每次上傳 GitHub 時更新，控制快取更新 -->
-    <meta name="version" content="20250521-12">
+    <meta name="version" content="20250521-13">
     <title>旅遊行程規劃</title>
 
     <!-- Open Graph：控制 LINE / FB / iMessage 連結預覽 -->
@@ -3401,8 +3401,8 @@
             renderModalImgPreview();
         }
 
-        // ── 圖片壓縮（上傳前自動縮小到最大 1024px，品質 0.82）──
-        function compressImage(file, maxSize = 1024, quality = 0.82) {
+        // ── 圖片壓縮（上傳前自動縮小到最大 640px，品質 0.65）──
+        function compressImage(file, maxSize = 640, quality = 0.65) {
             return new Promise(resolve => {
                 const reader = new FileReader();
                 reader.onload = ev => {
