@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="theme-color" content="#00A8A8">
     <!-- 版本號：每次上傳 GitHub 時更新，控制快取更新 -->
-    <meta name="version" content="20250521-15">
+    <meta name="version" content="20250521-16">
     <title>旅遊行程規劃</title>
 
     <!-- Open Graph：控制 LINE / FB / iMessage 連結預覽 -->
@@ -1753,12 +1753,15 @@
 
         <!-- 行程標籤頁 -->
         <div id="itinerary" class="tab-content active">
+            <!-- 瀏覽模式專屬按鈕 -->
+            <div class="view-mode-bar" style="display:none; justify-content:flex-end; padding:0 0 12px 0;">
+                <button class="btn-secondary" onclick="exportPDF()">📄 匯出PDF</button>
+            </div>
             <div class="toolbar">
                 <div class="toolbar-left">
                     <button class="btn-primary" onclick="openAddActivityModal()">➕ 新增活動</button>
                 </div>
                 <div class="toolbar-right">
-                    <button class="btn-secondary" onclick="exportPDF()">📄 匯出PDF</button>
                     <button class="btn-secondary" onclick="document.getElementById('importFile').click()">📥 匯入</button>
                     <input type="file" id="importFile" accept=".json" style="display:none;" onchange="importData(event)">
                     <button class="btn-secondary" onclick="resetData()">🔄 重設</button>
@@ -3706,46 +3709,44 @@
 
         // 數據導出
         async function exportPDF() {
-            const btn = document.querySelector('[onclick="exportPDF()"]');
+            const btn = document.querySelector('.view-mode-bar button');
             const origText = btn ? btn.textContent : '';
             if (btn) { btn.textContent = '⏳ 產生中…'; btn.disabled = true; }
 
             try {
-                // 切換到全部行程，確保完整內容
+                // 切換到全部行程
                 const prevDay = currentItineraryDay;
                 filterItinerary('all');
-                await new Promise(r => setTimeout(r, 100)); // 等 render
+                await new Promise(r => setTimeout(r, 150));
 
-                const target = document.getElementById('itinerary-list');
                 const { jsPDF } = window.jspdf;
-
-                // A4 尺寸
-                const pageW = 210, pageH = 297;
                 const pdf = new jsPDF({ unit: 'mm', format: 'a4', orientation: 'portrait' });
+                const pageW = 210, pageH = 297, margin = 10;
 
-                // 封面頁
+                // ── 封面：截 header 區域 ──
+                const headerEl = document.querySelector('header');
+                const headerCanvas = await html2canvas(headerEl, {
+                    scale: 2,
+                    useCORS: true,
+                    backgroundColor: null,
+                    logging: false,
+                });
+                const headerImgW = pageW;
+                const headerImgH = (headerCanvas.height * headerImgW) / headerCanvas.width;
+                pdf.addImage(headerCanvas.toDataURL('image/jpeg', 0.92), 'JPEG', 0, 0, headerImgW, headerImgH);
+
+                // 封面日期文字（純 ASCII 不會亂碼）
                 const trip = appData.trip || {};
-                pdf.setFillColor(0, 168, 168);
-                pdf.rect(0, 0, pageW, pageH, 'F');
-                pdf.setTextColor(255, 255, 255);
-                pdf.setFontSize(28);
-                pdf.setFont('helvetica', 'bold');
-                const tripTitle = `${trip.emoji || '🌏'} ${trip.title || '旅遊行程'}`;
-                pdf.text(tripTitle, pageW / 2, 110, { align: 'center' });
-                pdf.setFontSize(14);
-                pdf.setFont('helvetica', 'normal');
-                if (trip.startDate && trip.endDate) {
-                    pdf.text(`${trip.startDate} ～ ${trip.endDate}`, pageW / 2, 130, { align: 'center' });
+                const dateStr = (trip.startDate && trip.endDate)
+                    ? `${trip.startDate}  ~  ${trip.endDate}` : '';
+                if (dateStr) {
+                    pdf.setFontSize(12);
+                    pdf.setTextColor(180, 240, 240);
+                    pdf.text(dateStr, pageW / 2, headerImgH + 10, { align: 'center' });
                 }
-                if (trip.description) {
-                    pdf.text(trip.description, pageW / 2, 145, { align: 'center' });
-                }
-                pdf.setFontSize(11);
-                pdf.setTextColor(200, 240, 240);
-                pdf.text(`匯出日期：${new Date().toLocaleDateString('zh-TW')}`, pageW / 2, pageH - 20, { align: 'center' });
 
-                // 截圖行程內容
-                pdf.addPage();
+                // ── 行程內容：截 itinerary-list ──
+                const target = document.getElementById('itinerary-list');
                 const canvas = await html2canvas(target, {
                     scale: 2,
                     useCORS: true,
@@ -3753,37 +3754,33 @@
                     logging: false,
                     ignoreElements: el =>
                         el.classList?.contains('activity-buttons') ||
-                        el.classList?.contains('toolbar') ||
-                        el.classList?.contains('sort-arrows'),
+                        el.classList?.contains('sort-arrows') ||
+                        el.classList?.contains('sort-btns'),
                 });
 
-                const imgData = canvas.toDataURL('image/jpeg', 0.92);
-                const imgW = pageW - 20; // 左右各 10mm 邊距
+                pdf.addPage();
+                const imgW = pageW - margin * 2;
                 const imgH = (canvas.height * imgW) / canvas.width;
-                const margin = 10;
-                let y = margin;
                 let remainH = imgH;
 
-                // 分頁處理
                 while (remainH > 0) {
                     const sliceH = Math.min(remainH, pageH - margin * 2);
-                    const srcY = (imgH - remainH) / imgH * canvas.height;
+                    const srcY   = ((imgH - remainH) / imgH) * canvas.height;
                     const sliceCanvas = document.createElement('canvas');
-                    sliceCanvas.width = canvas.width;
+                    sliceCanvas.width  = canvas.width;
                     sliceCanvas.height = (sliceH / imgH) * canvas.height;
-                    const ctx = sliceCanvas.getContext('2d');
-                    ctx.drawImage(canvas, 0, srcY, canvas.width, sliceCanvas.height, 0, 0, canvas.width, sliceCanvas.height);
-                    const sliceData = sliceCanvas.toDataURL('image/jpeg', 0.92);
-                    pdf.addImage(sliceData, 'JPEG', margin, y, imgW, sliceH);
+                    sliceCanvas.getContext('2d').drawImage(
+                        canvas, 0, srcY, canvas.width, sliceCanvas.height,
+                        0, 0, canvas.width, sliceCanvas.height
+                    );
+                    pdf.addImage(sliceCanvas.toDataURL('image/jpeg', 0.92), 'JPEG', margin, margin, imgW, sliceH);
                     remainH -= sliceH;
-                    if (remainH > 0) { pdf.addPage(); y = margin; }
+                    if (remainH > 0) pdf.addPage();
                 }
 
                 const filename = `${trip.title || '旅遊行程'}-行程表.pdf`;
                 pdf.save(filename);
                 showSuccessMessage('PDF 已匯出！');
-
-                // 恢復篩選狀態
                 filterItinerary(prevDay);
             } catch (e) {
                 console.error('PDF 匯出失敗:', e);
@@ -3846,14 +3843,17 @@
         // 點擊模態外部關閉
         // 模式切換（瀏覽 / 編輯）
         function setMode(mode) {
+            const viewBar = document.querySelector('.view-mode-bar');
             if (mode === 'view') {
                 document.body.classList.add('view-mode');
                 document.getElementById('modeViewBtn').classList.add('active');
                 document.getElementById('modeEditBtn').classList.remove('active');
+                if (viewBar) viewBar.style.display = 'flex';
             } else {
                 document.body.classList.remove('view-mode');
                 document.getElementById('modeViewBtn').classList.remove('active');
                 document.getElementById('modeEditBtn').classList.add('active');
+                if (viewBar) viewBar.style.display = 'none';
             }
             localStorage.setItem('okinawaMode', mode);
         }
