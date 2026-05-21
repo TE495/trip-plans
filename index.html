@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="theme-color" content="#00A8A8">
     <!-- 版本號：每次上傳 GitHub 時更新，控制快取更新 -->
-    <meta name="version" content="20250521-08">
+    <meta name="version" content="20250521-09">
     <title>旅遊行程規劃</title>
 
     <!-- Open Graph：控制 LINE / FB / iMessage 連結預覽 -->
@@ -2261,15 +2261,36 @@
                 hotels: []
             }
         };
+        // ── localStorage 工具函數 ──
+        function loadStorage(key, defaultValue = null) {
+            try {
+                const raw = localStorage.getItem(key);
+                if (!raw) return defaultValue;
+                return JSON.parse(raw);
+            } catch (err) {
+                console.error(`讀取 ${key} 失敗:`, err);
+                localStorage.removeItem(key);
+                return defaultValue;
+            }
+        }
+
+        function saveStorage(key, data) {
+            try {
+                localStorage.setItem(key, JSON.stringify(data));
+            } catch (err) {
+                console.warn(`儲存 ${key} 失敗:`, err);
+            }
+        }
+
         // 有房間碼才讀 localStorage 資料；沒房間碼用空白範本（等使用者選擇加入或建立）
         let appData;
         try {
             const hasRoom = localStorage.getItem('okinawaRoom');
-            const raw = hasRoom ? localStorage.getItem('okinawaData') : null;
-            appData = raw ? JSON.parse(raw) : JSON.parse(JSON.stringify(DEFAULT_DATA));
+            appData = hasRoom
+                ? (loadStorage('okinawaData', JSON.parse(JSON.stringify(DEFAULT_DATA))))
+                : JSON.parse(JSON.stringify(DEFAULT_DATA));
         } catch (err) {
-            console.error('okinawaData 解析失敗，使用預設值:', err);
-            localStorage.removeItem('okinawaData');
+            console.error('appData 初始化失敗:', err);
             appData = JSON.parse(JSON.stringify(DEFAULT_DATA));
         }
         let editingId = null;
@@ -2630,7 +2651,7 @@
 
         // 保存數據到 localStorage
         function saveData() {
-            localStorage.setItem('okinawaData', JSON.stringify(appData));
+            saveStorage('okinawaData', appData);
         }
 
         // 渲染行程
@@ -4293,7 +4314,7 @@
             try {
                 appData = snap.val();
                 migrateData();
-                localStorage.setItem('okinawaData', JSON.stringify(appData));
+                saveStorage('okinawaData', appData);
                 initBanner();
                 renderTripHeader();
                 renderItinerary();
@@ -4344,7 +4365,7 @@
 
     const _origSaveData = saveData;
     saveData = function() {
-        localStorage.setItem('okinawaData', JSON.stringify(appData));
+        saveStorage('okinawaData', appData);
         if (currentRoom && !isSyncing) {
             setSyncStatus('syncing', '同步中…');
             ignoreNextSnapshot = true;
