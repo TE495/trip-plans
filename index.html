@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="theme-color" content="#00A8A8">
     <!-- 版本號：每次上傳 GitHub 時更新，控制快取更新 -->
-    <meta name="version" content="20250521-05">
+    <meta name="version" content="20250521-07">
     <title>旅遊行程規劃</title>
 
     <!-- Open Graph：控制 LINE / FB / iMessage 連結預覽 -->
@@ -26,22 +26,56 @@
     <link rel="manifest" href="data:application/json,{%22name%22:%22沖繩行程管理%22,%22short_name%22:%22沖繩之旅%22,%22start_url%22:%22/%22,%22display%22:%22standalone%22,%22background_color%22:%22%23ffffff%22,%22theme_color%22:%22%23FF6B9D%22,%22icons%22:[{%22src%22:%22data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 192 192%27%3E%3Crect fill=%27%23FF6B9D%27 width=%27192%27 height=%27192%27/%3E%3Ctext x=%2796%27 y=%27130%27 font-size=%27100%27 text-anchor=%27middle%27 dominant-baseline=%27middle%27%3E🇯🇵%3C/text%3E%3C/svg%3E%22,%22sizes%22:%22192x192%22,%22type%22:%22image/svg+xml%22}]}">
     
     <style>
+        /* ============================================================
+           CSS Variables - 設計系統 Tokens
+           ============================================================ */
+        :root {
+            /* ── 色彩 ── */
+            --primary:    #00A8A8;
+            --secondary:  #20C997;
+            --accent:     #48DBDB;
+            --dark:       #1F4D4D;
+            --light:      #E8F7F7;
+            --border:     #B8E6E6;
+            --success:    #06A77D;
+            --warning:    #FF9F43;
+            --danger:     #FF6B6B;
+
+            /* ── 中性灰階 ── */
+            --gray-100:   #fafafa;
+            --gray-200:   #f0f0f0;
+            --gray-300:   #eef0f0;
+            --gray-400:   #ccc;
+            --gray-500:   #bbb;
+            --gray-600:   #aaa;
+            --gray-700:   #999;
+            --gray-800:   #888;
+
+            /* ── 圓角 ── */
+            --radius-sm:  6px;
+            --radius-md:  10px;
+            --radius-lg:  12px;
+            --radius-xl:  16px;
+            --radius-2xl: 20px;
+
+            /* ── 陰影 ── */
+            --shadow-sm:  0 1px 4px rgba(0,0,0,0.08);
+            --shadow-md:  0 2px 10px rgba(0,0,0,0.055);
+            --shadow-lg:  0 4px 16px rgba(0,168,168,0.13);
+            --shadow-xl:  0 10px 40px rgba(0,0,0,0.1);
+
+            /* ── 動畫 ── */
+            --transition: all 0.2s ease;
+            --transition-fast: all 0.15s;
+        }
+
+        /* ============================================================
+           Reset & Base
+           ============================================================ */
         * {
             margin: 0;
             padding: 0;
             box-sizing: border-box;
-        }
-
-        :root {
-            --primary: #00A8A8;
-            --secondary: #20C997;
-            --accent: #48DBDB;
-            --dark: #1F4D4D;
-            --light: #E8F7F7;
-            --border: #B8E6E6;
-            --success: #06A77D;
-            --warning: #FF9F43;
-            --danger: #FF6B6B;
         }
 
         body {
@@ -53,6 +87,9 @@
             padding-bottom: 20px;
         }
 
+        /* ============================================================
+           Layout - 容器與頁首
+           ============================================================ */
         .container {
             max-width: 480px;
             margin: 0 auto;
@@ -62,6 +99,7 @@
             overflow: hidden;
         }
 
+        /* ── Header（封面 + 標題）── */
         header {
             background: linear-gradient(135deg, #00A8A8 0%, #20C997 100%);
             color: white;
@@ -142,6 +180,9 @@
             z-index: 1;
         }
 
+        /* ============================================================
+           Navigation - 分頁切換
+           ============================================================ */
         .tabs {
             display: flex;
             background: #f0f0f0;
@@ -179,6 +220,9 @@
             background: var(--primary);
         }
 
+        /* ============================================================
+           Itinerary - 行程頁
+           ============================================================ */
         .tab-content {
             display: none;
             padding: 20px;
@@ -197,6 +241,7 @@
         /* ── Day 區塊 ── */
         .day-card {
             margin-bottom: 28px;
+            animation: slideUp 0.5s ease-out;
         }
 
         .day-header {
@@ -503,7 +548,6 @@
             margin-top: 8px;
         }
 
-        /* ── 活動間插入按鈕 ── */
         .empty-day-hint {
             display: flex;
             flex-direction: column;
@@ -718,6 +762,9 @@
 
 
 
+        /* ============================================================
+           Buttons - 按鈕系統
+           ============================================================ */
         .btn-sm {
             padding: 4px 8px;
             font-size: 11px;
@@ -745,7 +792,9 @@
             background: #FF5252;
         }
 
-        /* 模態視窗 */
+        /* ============================================================
+           Modal - 彈窗系統
+           ============================================================ */
         .modal {
             display: none;
             position: fixed;
@@ -772,10 +821,10 @@
             max-height: 90vh;
             overflow-y: auto;
             box-shadow: 0 20px 60px rgba(0,0,0,0.3);
-            animation: slideUp 0.3s ease;
+            animation: modalSlideUp 0.3s ease;
         }
 
-        @keyframes slideUp {
+        @keyframes modalSlideUp {
             from {
                 opacity: 0;
                 transform: translateY(30px);
@@ -1016,7 +1065,9 @@
             background: #AAAAAA;
         }
 
-        /* 工具欄 */
+        /* ============================================================
+           Toolbar - 工具列
+           ============================================================ */
         .toolbar {
             display: flex;
             gap: 8px;
@@ -1067,7 +1118,9 @@
             font-size: 12px;
         }
 
-        /* ── Firebase 同步 ── */
+        /* ============================================================
+           Firebase 同步狀態列
+           ============================================================ */
         .sync-bar {
             display: flex;
             align-items: center;
@@ -1387,7 +1440,10 @@
         }
 
         .split-label { font-size: 12px; opacity: 0.85; }
-        /* ── 歡迎畫面 ── */
+
+        /* ============================================================
+           Welcome Screen - 歡迎畫面
+           ============================================================ */
         .welcome-overlay {
             position: fixed;
             inset: 0;
@@ -1621,6 +1677,9 @@
             color: #155724;
         }
 
+        /* ============================================================
+           Animations - 動畫
+           ============================================================ */
         @keyframes slideUp {
             from {
                 opacity: 0;
@@ -1632,16 +1691,15 @@
             }
         }
 
-        .day-card {
-            animation: slideUp 0.5s ease-out;
-        }
-
         .day-card:nth-child(1) { animation-delay: 0.1s; }
         .day-card:nth-child(2) { animation-delay: 0.2s; }
         .day-card:nth-child(3) { animation-delay: 0.3s; }
         .day-card:nth-child(4) { animation-delay: 0.4s; }
         .day-card:nth-child(5) { animation-delay: 0.5s; }
 
+        /* ============================================================
+           Responsive - 手機適配
+           ============================================================ */
         @media (max-width: 480px) {
             .container {
                 border-radius: 0;
@@ -2571,7 +2629,27 @@
         // 渲染行程
         let currentItineraryDay = 'all';
 
+        function showRenderError(pageName) {
+            const containers = {
+                '行程': 'itinerary-list', '費用': 'expense-list',
+                '資訊': 'info-content',   '地圖': 'map-list'
+            };
+            const id = containers[pageName];
+            const el = id && document.getElementById(id);
+            if (el) {
+                el.innerHTML = `<div style="padding:40px 20px;text-align:center;color:#888;">
+                    <div style="font-size:36px;margin-bottom:8px;">⚠️</div>
+                    <div style="font-weight:600;margin-bottom:4px;">${pageName}頁載入失敗</div>
+                    <div style="font-size:12px;color:#aaa;">資料格式可能異常，請重新整理試試</div>
+                </div>`;
+            }
+        }
+
         function renderItinerary() {
+            try { _renderItinerary(); }
+            catch(e) { console.error('renderItinerary error:', e); showRenderError('行程'); }
+        }
+        function _renderItinerary() {
             const container = document.getElementById('itinerary-list');
             const filterEl  = document.getElementById('itinerary-filter');
             const days = {};
@@ -2724,6 +2802,10 @@
         let splitPeople = parseInt(localStorage.getItem('okinawaSplit') || '1');
 
         function renderExpense() {
+            try { _renderExpense(); }
+            catch(e) { console.error('renderExpense error:', e); showRenderError('費用'); }
+        }
+        function _renderExpense() {
             const container      = document.getElementById('expense-list');
             const totalContainer = document.getElementById('expense-total');
             const chartContainer = document.getElementById('expense-chart');
@@ -2868,6 +2950,10 @@
 
         // 渲染資訊
         function renderInfo() {
+            try { _renderInfo(); }
+            catch(e) { console.error('renderInfo error:', e); showRenderError('資訊'); }
+        }
+        function _renderInfo() {
             const container = document.getElementById('info-content');
             const info = appData.info;
 
@@ -2973,7 +3059,7 @@
             updateDayOptions();
             document.getElementById('activityModalTitle').textContent = '新增活動';
             // 自動帶入目前篩選的天（不是 all 才帶入）
-            const defaultDay = (currentItineraryDay && currentItineraryDay !== 'all')
+            const defaultDay = (typeof currentItineraryDay !== 'undefined' && currentItineraryDay !== 'all')
                 ? currentItineraryDay : 1;
             document.getElementById('activityDay').value = defaultDay;
             document.getElementById('activityCheckTime').value  = '';
@@ -3041,7 +3127,7 @@
         function saveActivity(e) {
             e.preventDefault();
             const activity = {
-                id: editingId || (appData.activities.length === 0 ? 1 : Math.max(...appData.activities.map(a => a.id)) + 1),
+                id: editingId || Math.max(...appData.activities.map(a => a.id), 0) + 1,
                 day: parseInt(document.getElementById('activityDay').value),
                 checkTime:  document.getElementById('activityCheckTime').value,
                 checkLabel: document.getElementById('activityCheckLabel').value.trim(),
@@ -3418,7 +3504,7 @@
         function saveExpense(e) {
             e.preventDefault();
             const expense = {
-                id: editingId || (appData.expenses.length === 0 ? 1 : Math.max(...appData.expenses.map(e => e.id)) + 1),
+                id: editingId || Math.max(...appData.expenses.map(e => e.id), 0) + 1,
                 icon: document.getElementById('expenseIcon').value,
                 name: document.getElementById('expenseName').value,
                 detail: document.getElementById('expenseDetail').value,
@@ -3469,7 +3555,7 @@
         function saveChecklistItem(e) {
             e.preventDefault();
             const item = {
-                id: editingId || (appData.checklists.length === 0 ? 1 : Math.max(...appData.checklists.map(i => i.id)) + 1),
+                id: editingId || Math.max(...appData.checklists.map(i => i.id), 0) + 1,
                 category: document.getElementById('checklistCategory').value,
                 content: document.getElementById('checklistContent').value,
                 completed: editingId ? appData.checklists.find(i => i.id === editingId).completed : false
@@ -3754,7 +3840,7 @@
         function savePlace(e) {
             e.preventDefault();
             const place = {
-                id: editingPlaceId || (appData.extraPlaces.length === 0 ? 1 : Math.max(...appData.extraPlaces.map(p => p.id)) + 1),
+                id: editingPlaceId || Math.max(0, ...appData.extraPlaces.map(p => p.id)) + 1,
                 icon:     document.getElementById('placeIcon').value     || '📍',
                 name:     document.getElementById('placeName').value,
                 location: document.getElementById('placeLocation').value,
@@ -3782,6 +3868,10 @@
         }
 
         function renderMap(filterDay) {
+            try { _renderMap(filterDay); }
+            catch(e) { console.error('renderMap error:', e); showRenderError('地圖'); }
+        }
+        function _renderMap(filterDay) {
             currentMapDay = filterDay;
             const numDays = getTripDays();
             const dayDates = [''];
@@ -4069,7 +4159,7 @@
         }
         db = firebase.database();
 
-        // Firebase 連線狀態監聽
+        // Firebase 連線狀態監聽：網路恢復時自動重連
         db.ref('.info/connected').on('value', snap => {
             const connected = snap && snap.val() === true;
             if (connected && currentRoom) {
@@ -4078,7 +4168,9 @@
                     joinRoom(currentRoom);
                 }
             }
-        }, err => {});
+        }, err => {
+            console.error('Firebase connected listener error:', err);
+        });
     } catch(e) {
         console.error('Firebase init failed:', e);
         alert('Firebase 初始化失敗，請重新整理頁面。');
@@ -4099,7 +4191,8 @@
         if (currentRoom) {
             joinRoom(currentRoom);
         } else {
-            window.location.reload();
+            // 強制重新整理清快取
+            window.location.href = window.location.href.split('?')[0] + '?v=' + Date.now();
         }
     }
 
@@ -4140,32 +4233,18 @@
             return;
         }
         closeRoomModal();
+        // 正確取消舊的 listener
         if (currentRef) {
             try { currentRef.off(); } catch(e) {}
             currentRef = null;
         }
         fbListener = null;
-        isSyncing = false;
+        isSyncing = false; // 重置同步狀態
 
         currentRoom = code;
         localStorage.setItem('okinawaRoom', code);
         setRoomCode(code);
         setSyncStatus('syncing', '連線中…');
-
-        // 立刻用 localStorage 的舊資料 render，避免使用者看到空白
-        try {
-            const cached = localStorage.getItem('okinawaData');
-            if (cached) {
-                appData = JSON.parse(cached);
-                migrateData();
-                initBanner();
-                renderTripHeader();
-                renderItinerary();
-                renderExpense();
-                renderChecklist();
-                renderInfo();
-            }
-        } catch(e) {}
 
         const ref = db.ref(`rooms/${code}/data`);
         currentRef = ref;
@@ -4174,9 +4253,12 @@
         let firstLoad = true;
         let resolved  = false;
 
+        // 逾時保護
         const timeoutId = setTimeout(() => {
-            if (!resolved) setSyncStatus('error', '連線逾時');
-        }, 20000);
+            if (!resolved) {
+                setSyncStatus('error', '連線逾時');
+            }
+        }, 12000);
 
         fbListener = ref.on('value', snap => {
             resolved = true;
@@ -4282,8 +4364,11 @@
     }
 
     function welcomeJoin() {
-        const code = document.getElementById('welcomeRoomInput').value.trim().toUpperCase();
+        const code = document.getElementById('welcomeRoomInput').value.trim();
         if (code.length !== 6) { alert('請輸入 6 碼房間碼'); return; }
+        // 顯示載入中
+        const btn = document.querySelector('.welcome-btn');
+        if (btn) { btn.textContent = '連線中…'; btn.disabled = true; }
         hideWelcome();
         joinRoom(code);
     }
@@ -4299,12 +4384,12 @@
         showSuccessMessage(`新行程已建立！房間碼：${code}`);
     }
 
-    // ── 每次進來都顯示歡迎畫面，預填上次房間碼 ──
-    showWelcome();
+    // ── 自動恢復上次房間 or 顯示歡迎畫面 ──
     if (currentRoom) {
-        // 預填上次的房間碼，讓使用者確認後連線
-        const inp = document.getElementById('welcomeRoomInput');
-        if (inp) inp.value = currentRoom;
+        setRoomCode(currentRoom);
+        joinRoom(currentRoom);
+    } else {
+        showWelcome();
     }
     </script>
 </body>
