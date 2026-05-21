@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="theme-color" content="#00A8A8">
     <!-- 版本號：每次上傳 GitHub 時更新，控制快取更新 -->
-    <meta name="version" content="20250521-09">
+    <meta name="version" content="20250521-10">
     <title>旅遊行程規劃</title>
 
     <!-- Open Graph：控制 LINE / FB / iMessage 連結預覽 -->
@@ -2649,6 +2649,34 @@
             if (tabName === 'info') fetchWeather();
         }
 
+        // ── 實體配置表 ──
+        const ENTITY_CONFIG = {
+            activity:  { key: 'activities',  label: '活動', path: null,         render: () => renderItinerary() },
+            expense:   { key: 'expenses',    label: '費用', path: null,         render: () => renderExpense() },
+            checklist: { key: 'checklists',  label: '項目', path: null,         render: () => renderChecklist() },
+            hotel:     { key: 'hotels',      label: '飯店', path: 'info',       render: () => renderInfo() },
+            place:     { key: 'extraPlaces', label: '景點', path: null,         render: () => renderMap(currentMapDay) },
+        };
+
+        // ── 通用 ID 產生器 ──
+        function generateId() {
+            return Date.now() + Math.floor(Math.random() * 10000);
+        }
+
+        // ── 通用刪除函數 ──
+        function deleteItem(entityType, id) {
+            const cfg = ENTITY_CONFIG[entityType];
+            if (!cfg) return console.error('未知實體:', entityType);
+            if (!confirm(`確定要刪除這個${cfg.label}嗎？`)) return;
+            const arr = cfg.path ? appData[cfg.path][cfg.key] : appData[cfg.key];
+            const idx = arr.findIndex(item => item.id === id);
+            if (idx === -1) return;
+            arr.splice(idx, 1);
+            saveData();
+            cfg.render();
+            showSuccessMessage(`${cfg.label}已刪除！`);
+        }
+
         // 保存數據到 localStorage
         function saveData() {
             saveStorage('okinawaData', appData);
@@ -2797,7 +2825,7 @@
                                     </div>`}
                                     <div class="activity-buttons">
                                         <button class="btn-sm btn-edit"   onclick="editActivity(${a.id})">✏️ 編輯</button>
-                                        <button class="btn-sm btn-delete" onclick="deleteActivity(${a.id})">🗑️ 刪除</button>
+                                        <button class="btn-sm btn-delete" onclick="deleteItem('activity', ${a.id})">🗑️ 刪除</button>
                                     </div>
                                 </div>
                             </div>
@@ -2863,7 +2891,7 @@
                         <div style="display:flex;align-items:center;gap:8px;">
                             <div class="expense-amount">NT$${expense.amount.toLocaleString()}</div>
                             <button class="btn-sm btn-edit" onclick="editExpense(${expense.id})">✏️</button>
-                            <button class="btn-sm btn-delete" onclick="deleteExpense(${expense.id})">🗑️</button>
+                            <button class="btn-sm btn-delete" onclick="deleteItem('expense', ${expense.id})">🗑️</button>
                         </div>
                     </div>`;
             });
@@ -2966,7 +2994,7 @@
                             <span class="checklist-label">${item.content}</span>
                             <div class="checklist-actions">
                                 <button type="button" class="btn-sm btn-edit" onclick="editChecklistItem(${item.id})">✏️</button>
-                                <button type="button" class="btn-sm btn-delete" onclick="deleteChecklistItem(${item.id})">🗑️</button>
+                                <button type="button" class="btn-sm btn-delete" onclick="deleteItem('checklist', ${item.id})">🗑️</button>
                             </div>
                         </label>
                     `;
@@ -3053,7 +3081,7 @@
                             <div style="display:flex;gap:6px;flex-shrink:0;margin-left:8px;">
                                 ${h.mapUrl ? `<a href="${h.mapUrl}" target="_blank" style="background:var(--light);border:1px solid var(--border);border-radius:8px;padding:4px 8px;font-size:11px;font-weight:700;color:var(--secondary);text-decoration:none;">🗺️ 地圖</a>` : ''}
                                 <button class="btn-sm btn-edit" onclick="editHotel(${h.id})">✏️</button>
-                                <button class="btn-sm btn-delete" onclick="deleteHotel(${h.id})">🗑️</button>
+                                <button class="btn-sm btn-delete" onclick="deleteItem('hotel', ${h.id})">🗑️</button>
                             </div>
                         </div>
                         <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;font-size:12px;">
@@ -3155,7 +3183,7 @@
         function saveActivity(e) {
             e.preventDefault();
             const activity = {
-                id: editingId || Math.max(...appData.activities.map(a => a.id), 0) + 1,
+                id: editingId || generateId(),
                 day: parseInt(document.getElementById('activityDay').value),
                 checkTime:  document.getElementById('activityCheckTime').value,
                 checkLabel: document.getElementById('activityCheckLabel').value.trim(),
@@ -3182,15 +3210,6 @@
             renderItinerary();
             closeModal('activityModal');
             showSuccessMessage('活動已保存！');
-        }
-
-        function deleteActivity(id) {
-            if (confirm('確定要刪除這個活動嗎？')) {
-                appData.activities = appData.activities.filter(a => a.id !== id);
-                saveData();
-                renderItinerary();
-                showSuccessMessage('活動已刪除！');
-            }
         }
 
         // 從 time 字串計算停留時間（分鐘），無法解析回傳 null
@@ -3532,7 +3551,7 @@
         function saveExpense(e) {
             e.preventDefault();
             const expense = {
-                id: editingId || Math.max(...appData.expenses.map(e => e.id), 0) + 1,
+                id: editingId || generateId(),
                 icon: document.getElementById('expenseIcon').value,
                 name: document.getElementById('expenseName').value,
                 detail: document.getElementById('expenseDetail').value,
@@ -3551,15 +3570,6 @@
             renderExpense();
             closeModal('expenseModal');
             showSuccessMessage('費用已保存！');
-        }
-
-        function deleteExpense(id) {
-            if (confirm('確定要刪除這個費用嗎？')) {
-                appData.expenses = appData.expenses.filter(e => e.id !== id);
-                saveData();
-                renderExpense();
-                showSuccessMessage('費用已刪除！');
-            }
         }
 
         // 清單編輯函數
@@ -3583,7 +3593,7 @@
         function saveChecklistItem(e) {
             e.preventDefault();
             const item = {
-                id: editingId || Math.max(...appData.checklists.map(i => i.id), 0) + 1,
+                id: editingId || generateId(),
                 category: document.getElementById('checklistCategory').value,
                 content: document.getElementById('checklistContent').value,
                 completed: editingId ? appData.checklists.find(i => i.id === editingId).completed : false
@@ -3600,15 +3610,6 @@
             renderChecklist();
             closeModal('checklistModal');
             showSuccessMessage('項目已保存！');
-        }
-
-        function deleteChecklistItem(id) {
-            if (confirm('確定要刪除這個項目嗎？')) {
-                appData.checklists = appData.checklists.filter(i => i.id !== id);
-                saveData();
-                renderChecklist();
-                showSuccessMessage('項目已刪除！');
-            }
         }
 
         function toggleChecklistItem(id) {
@@ -3685,7 +3686,7 @@
             e.preventDefault();
             if (!appData.info.hotels) appData.info.hotels = [];
             const hotel = {
-                id:        editingHotelId || Math.max(...appData.info.hotels.map(h => h.id), 0) + 1,
+                id:        editingHotelId || generateId(),
                 name:      document.getElementById('hotelName').value,
                 mapUrl:    document.getElementById('hotelMapUrl').value,
                 platform:  document.getElementById('hotelPlatform').value,
@@ -3701,14 +3702,6 @@
             }
             saveData(); renderInfo(); closeModal('hotelModal');
             showSuccessMessage('飯店已保存！');
-        }
-
-        function deleteHotel(id) {
-            if (confirm('確定要刪除這間飯店嗎？')) {
-                appData.info.hotels = appData.info.hotels.filter(h => h.id !== id);
-                saveData(); renderInfo();
-                showSuccessMessage('飯店已刪除！');
-            }
         }
 
         // 模態控制
@@ -3868,7 +3861,7 @@
         function savePlace(e) {
             e.preventDefault();
             const place = {
-                id: editingPlaceId || Math.max(0, ...appData.extraPlaces.map(p => p.id)) + 1,
+                id: editingPlaceId || generateId(),
                 icon:     document.getElementById('placeIcon').value     || '📍',
                 name:     document.getElementById('placeName').value,
                 location: document.getElementById('placeLocation').value,
@@ -3885,14 +3878,6 @@
             renderMap(currentMapDay);
             closeModal('placeModal');
             showSuccessMessage('景點已保存！');
-        }
-
-        function deletePlace(id) {
-            if (!confirm('確定要刪除這個景點？')) return;
-            appData.extraPlaces = appData.extraPlaces.filter(p => p.id !== id);
-            saveData();
-            renderMap(currentMapDay);
-            showSuccessMessage('景點已刪除');
         }
 
         function renderMap(filterDay) {
@@ -4001,7 +3986,7 @@
             const editBtns = isExtra
                 ? `<div style="display:flex;flex-direction:column;gap:3px;flex-shrink:0;margin-left:6px;">
                     <button class="btn-sm btn-edit" style="padding:2px 6px;font-size:10px;" onclick="event.preventDefault();event.stopPropagation();editPlace(${p.id})">✏️</button>
-                    <button class="btn-sm btn-delete" style="padding:2px 6px;font-size:10px;" onclick="event.preventDefault();event.stopPropagation();deletePlace(${p.id})">🗑️</button>
+                    <button class="btn-sm btn-delete" style="padding:2px 6px;font-size:10px;" onclick="event.preventDefault();event.stopPropagation();deleteItem('place', ${p.id})">🗑️</button>
                   </div>`
                 : '';
             return `
