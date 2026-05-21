@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="theme-color" content="#00A8A8">
     <!-- 版本號：每次上傳 GitHub 時更新，控制快取更新 -->
-    <meta name="version" content="20250521-14">
+    <meta name="version" content="20250521-15">
     <title>旅遊行程規劃</title>
 
     <!-- Open Graph：控制 LINE / FB / iMessage 連結預覽 -->
@@ -1678,6 +1678,61 @@
         }
 
         /* ============================================================
+           Print - 列印 / 匯出 PDF
+           ============================================================ */
+        @media print {
+            /* 隱藏所有操作介面 */
+            .sync-bar,
+            .tabs,
+            .toolbar,
+            .header-img-btn,
+            .activity-buttons,
+            .sort-btns,
+            .empty-day-hint,
+            .btn-primary,
+            .btn-secondary,
+            .itinerary-filter,
+            .day-select,
+            .map-open-all,
+            .welcome-overlay,
+            .lightbox,
+            .modal { display: none !important; }
+
+            /* 顯示所有 tab 內容（不只 active）*/
+            .tab-content {
+                display: block !important;
+                padding: 0 !important;
+                page-break-before: always;
+            }
+            .tab-content:first-of-type { page-break-before: avoid; }
+
+            /* 容器不要陰影 */
+            .container {
+                box-shadow: none !important;
+                max-width: 100% !important;
+            }
+
+            /* header 簡化 */
+            header {
+                padding: 16px 0 !important;
+                -webkit-print-color-adjust: exact;
+                print-color-adjust: exact;
+            }
+
+            /* 每個 Day 不要斷頁 */
+            .day-card { page-break-inside: avoid; }
+
+            /* 活動卡片不要斷頁 */
+            .activity { page-break-inside: avoid; }
+
+            /* 保留背景色 */
+            * {
+                -webkit-print-color-adjust: exact;
+                print-color-adjust: exact;
+            }
+        }
+
+        /* ============================================================
            Animations - 動畫
            ============================================================ */
         @keyframes slideUp {
@@ -1761,6 +1816,7 @@
                 </div>
                 <div class="toolbar-right">
                     <button class="btn-secondary" onclick="exportData()">📤 匯出</button>
+                    <button class="btn-secondary" onclick="exportPDF()">🖨️ 存PDF</button>
                     <button class="btn-secondary" onclick="document.getElementById('importFile').click()">📥 匯入</button>
                     <input type="file" id="importFile" accept=".json" style="display:none;" onchange="importData(event)">
                     <button class="btn-secondary" onclick="resetData()">🔄 重設</button>
@@ -3728,6 +3784,21 @@
         }
 
         // 數據導出
+        function exportPDF() {
+            const prevMode = document.body.classList.contains('view-mode') ? 'view' : 'edit';
+            setMode('view');
+
+            // 暫時顯示所有 tab 內容
+            const contents = document.querySelectorAll('.tab-content');
+            contents.forEach(el => el.style.display = 'block');
+
+            window.print();
+
+            // 還原 tab 顯示狀態
+            contents.forEach(el => el.style.display = '');
+            setMode(prevMode);
+        }
+
         function exportData() {
             const dataStr = JSON.stringify(appData, null, 2);
             const blob = new Blob([dataStr], { type: 'application/json' });
