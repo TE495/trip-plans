@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="theme-color" content="#00A8A8">
     <!-- 版本號：每次上傳 GitHub 時更新，控制快取更新 -->
-    <meta name="version" content="20250521-13">
+    <meta name="version" content="20250521-14">
     <title>旅遊行程規劃</title>
 
     <!-- Open Graph：控制 LINE / FB / iMessage 連結預覽 -->
@@ -2668,15 +2668,13 @@
                 editingVar: 'editingId',
                 dataKey:    'activities',
                 fields: {
-                    activityDay:               { key: 'day',              default: 1  },
-                    activityCheckTime:         { key: 'checkTime',        default: '' },
-                    activityCheckLabel:        { key: 'checkLabel',       default: '' },
-                    activityIcon:              { key: 'icon',             default: '' },
-                    activityTitle:             { key: 'title',            default: '' },
-                    activityLocation:          { key: 'location',         default: '' },
-                    activityNotes:             { key: 'notes',            default: '' },
-                    activityTransportType:     { key: '_transportType',   default: '' },
-                    activityTransportDuration: { key: '_transportDuration', default: '' },
+                    activityDay:        { key: 'day',        default: 1  },
+                    activityCheckTime:  { key: 'checkTime',  default: '' },
+                    activityCheckLabel: { key: 'checkLabel', default: '' },
+                    activityIcon:       { key: 'icon',       default: '' },
+                    activityTitle:      { key: 'title',      default: '' },
+                    activityLocation:   { key: 'location',   default: '' },
+                    activityNotes:      { key: 'notes',      default: '' },
                 },
                 transform: { day: v => parseInt(v) || 1 },
                 beforeOpen: () => updateDayOptions(),
@@ -2686,6 +2684,9 @@
                     document.getElementById('activityTimeStart').value = start;
                     document.getElementById('activityTimeEnd').value   = end;
                     document.getElementById('activityTimeNote').value  = note;
+                    // transport（巢狀物件，無法用 fields 配置）
+                    document.getElementById('activityTransportType').value     = item?.transport?.type     || '';
+                    document.getElementById('activityTransportDuration').value = item?.transport?.duration || '';
                     // 圖片預覽
                     pendingActivityImages = item ? [...(item.images || [])] : [];
                     renderModalImgPreview();
@@ -2700,15 +2701,10 @@
                     item.time   = buildTimeString();
                     item.images = [...pendingActivityImages];
                     item.transport = {
-                        type:     item._transportType     || '',
-                        duration: item._transportDuration || '',
+                        type:     document.getElementById('activityTransportType').value     || '',
+                        duration: document.getElementById('activityTransportDuration').value || '',
                     };
-                    delete item._transportType;
-                    delete item._transportDuration;
                 },
-                preserve: (oldItem) => ({
-                    transport: oldItem?.transport || { type: '', duration: '' },
-                }),
                 render: () => renderItinerary(),
             },
             expense: {
