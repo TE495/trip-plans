@@ -4152,6 +4152,21 @@
         setRoomCode(code);
         setSyncStatus('syncing', '連線中…');
 
+        // 立刻用 localStorage 的舊資料 render，避免使用者看到空白
+        try {
+            const cached = localStorage.getItem('okinawaData');
+            if (cached) {
+                appData = JSON.parse(cached);
+                migrateData();
+                initBanner();
+                renderTripHeader();
+                renderItinerary();
+                renderExpense();
+                renderChecklist();
+                renderInfo();
+            }
+        } catch(e) {}
+
         const ref = db.ref(`rooms/${code}/data`);
         currentRef = ref;
         try { if (ref.keepSynced) ref.keepSynced(true); } catch(e) {}
@@ -4161,7 +4176,7 @@
 
         const timeoutId = setTimeout(() => {
             if (!resolved) setSyncStatus('error', '連線逾時');
-        }, 12000);
+        }, 20000);
 
         fbListener = ref.on('value', snap => {
             resolved = true;
