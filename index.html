@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="theme-color" content="#00A8A8">
     <!-- 版本號：每次上傳 GitHub 時更新，控制快取更新 -->
-    <meta name="version" content="20250521-07">
+    <meta name="version" content="20250521-08">
     <title>旅遊行程規劃</title>
 
     <!-- Open Graph：控制 LINE / FB / iMessage 連結預覽 -->
@@ -2262,9 +2262,16 @@
             }
         };
         // 有房間碼才讀 localStorage 資料；沒房間碼用空白範本（等使用者選擇加入或建立）
-        let appData = localStorage.getItem('okinawaRoom')
-            ? (JSON.parse(localStorage.getItem('okinawaData')) || JSON.parse(JSON.stringify(DEFAULT_DATA)))
-            : JSON.parse(JSON.stringify(DEFAULT_DATA));
+        let appData;
+        try {
+            const hasRoom = localStorage.getItem('okinawaRoom');
+            const raw = hasRoom ? localStorage.getItem('okinawaData') : null;
+            appData = raw ? JSON.parse(raw) : JSON.parse(JSON.stringify(DEFAULT_DATA));
+        } catch (err) {
+            console.error('okinawaData 解析失敗，使用預設值:', err);
+            localStorage.removeItem('okinawaData');
+            appData = JSON.parse(JSON.stringify(DEFAULT_DATA));
+        }
         let editingId = null;
         let editingDayId = null;
 
