@@ -19,6 +19,10 @@
     <meta property="og:locale"      content="zh_TW">
     <meta name="description"        content="2026.07.16 - 07.20｜5日4夜｜共同編輯行程">
 
+    <!-- jsPDF -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <!-- html2canvas -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
     <!-- Firebase SDK -->
     <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-database-compat.js"></script>
@@ -26,56 +30,22 @@
     <link rel="manifest" href="data:application/json,{%22name%22:%22沖繩行程管理%22,%22short_name%22:%22沖繩之旅%22,%22start_url%22:%22/%22,%22display%22:%22standalone%22,%22background_color%22:%22%23ffffff%22,%22theme_color%22:%22%23FF6B9D%22,%22icons%22:[{%22src%22:%22data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 192 192%27%3E%3Crect fill=%27%23FF6B9D%27 width=%27192%27 height=%27192%27/%3E%3Ctext x=%2796%27 y=%27130%27 font-size=%27100%27 text-anchor=%27middle%27 dominant-baseline=%27middle%27%3E🇯🇵%3C/text%3E%3C/svg%3E%22,%22sizes%22:%22192x192%22,%22type%22:%22image/svg+xml%22}]}">
     
     <style>
-        /* ============================================================
-           CSS Variables - 設計系統 Tokens
-           ============================================================ */
-        :root {
-            /* ── 色彩 ── */
-            --primary:    #00A8A8;
-            --secondary:  #20C997;
-            --accent:     #48DBDB;
-            --dark:       #1F4D4D;
-            --light:      #E8F7F7;
-            --border:     #B8E6E6;
-            --success:    #06A77D;
-            --warning:    #FF9F43;
-            --danger:     #FF6B6B;
-
-            /* ── 中性灰階 ── */
-            --gray-100:   #fafafa;
-            --gray-200:   #f0f0f0;
-            --gray-300:   #eef0f0;
-            --gray-400:   #ccc;
-            --gray-500:   #bbb;
-            --gray-600:   #aaa;
-            --gray-700:   #999;
-            --gray-800:   #888;
-
-            /* ── 圓角 ── */
-            --radius-sm:  6px;
-            --radius-md:  10px;
-            --radius-lg:  12px;
-            --radius-xl:  16px;
-            --radius-2xl: 20px;
-
-            /* ── 陰影 ── */
-            --shadow-sm:  0 1px 4px rgba(0,0,0,0.08);
-            --shadow-md:  0 2px 10px rgba(0,0,0,0.055);
-            --shadow-lg:  0 4px 16px rgba(0,168,168,0.13);
-            --shadow-xl:  0 10px 40px rgba(0,0,0,0.1);
-
-            /* ── 動畫 ── */
-            --transition: all 0.2s ease;
-            --transition-fast: all 0.15s;
-        }
-
-        /* ============================================================
-           Reset & Base
-           ============================================================ */
         * {
             margin: 0;
             padding: 0;
             box-sizing: border-box;
+        }
+
+        :root {
+            --primary: #00A8A8;
+            --secondary: #20C997;
+            --accent: #48DBDB;
+            --dark: #1F4D4D;
+            --light: #E8F7F7;
+            --border: #B8E6E6;
+            --success: #06A77D;
+            --warning: #FF9F43;
+            --danger: #FF6B6B;
         }
 
         body {
@@ -87,9 +57,6 @@
             padding-bottom: 20px;
         }
 
-        /* ============================================================
-           Layout - 容器與頁首
-           ============================================================ */
         .container {
             max-width: 480px;
             margin: 0 auto;
@@ -99,7 +66,6 @@
             overflow: hidden;
         }
 
-        /* ── Header（封面 + 標題）── */
         header {
             background: linear-gradient(135deg, #00A8A8 0%, #20C997 100%);
             color: white;
@@ -180,9 +146,6 @@
             z-index: 1;
         }
 
-        /* ============================================================
-           Navigation - 分頁切換
-           ============================================================ */
         .tabs {
             display: flex;
             background: #f0f0f0;
@@ -220,9 +183,6 @@
             background: var(--primary);
         }
 
-        /* ============================================================
-           Itinerary - 行程頁
-           ============================================================ */
         .tab-content {
             display: none;
             padding: 20px;
@@ -241,7 +201,6 @@
         /* ── Day 區塊 ── */
         .day-card {
             margin-bottom: 28px;
-            animation: slideUp 0.5s ease-out;
         }
 
         .day-header {
@@ -548,6 +507,59 @@
             margin-top: 8px;
         }
 
+        /* ── 活動間插入按鈕 ── */
+        .insert-btn-wrap {
+            display: none;
+            justify-content: center;
+            align-items: center;
+            margin: 2px 0;
+            position: relative;
+        }
+
+        body:not(.view-mode) .insert-btn-wrap {
+            display: flex;
+        }
+
+        .insert-btn {
+            width: 24px;
+            height: 24px;
+            border-radius: 50%;
+            border: 2px solid var(--border);
+            background: white;
+            color: var(--primary);
+            font-size: 16px;
+            font-weight: 700;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.15s;
+            line-height: 1;
+            box-shadow: 0 1px 4px rgba(0,0,0,0.08);
+            opacity: 0;
+            transform: scale(0.8);
+        }
+
+        /* 行程時間軸區 hover 才顯示 */
+        .timeline:hover .insert-btn {
+            opacity: 1;
+            transform: scale(1);
+        }
+
+        .insert-btn:hover {
+            background: var(--primary);
+            color: white;
+            border-color: var(--primary);
+            transform: scale(1.15) !important;
+        }
+
+        /* 手機一直顯示 */
+        @media (hover: none) {
+            .insert-btn {
+                opacity: 1;
+                transform: scale(1);
+            }
+        }
         .empty-day-hint {
             display: flex;
             flex-direction: column;
@@ -762,9 +774,6 @@
 
 
 
-        /* ============================================================
-           Buttons - 按鈕系統
-           ============================================================ */
         .btn-sm {
             padding: 4px 8px;
             font-size: 11px;
@@ -792,9 +801,7 @@
             background: #FF5252;
         }
 
-        /* ============================================================
-           Modal - 彈窗系統
-           ============================================================ */
+        /* 模態視窗 */
         .modal {
             display: none;
             position: fixed;
@@ -821,10 +828,10 @@
             max-height: 90vh;
             overflow-y: auto;
             box-shadow: 0 20px 60px rgba(0,0,0,0.3);
-            animation: modalSlideUp 0.3s ease;
+            animation: slideUp 0.3s ease;
         }
 
-        @keyframes modalSlideUp {
+        @keyframes slideUp {
             from {
                 opacity: 0;
                 transform: translateY(30px);
@@ -1065,9 +1072,7 @@
             background: #AAAAAA;
         }
 
-        /* ============================================================
-           Toolbar - 工具列
-           ============================================================ */
+        /* 工具欄 */
         .toolbar {
             display: flex;
             gap: 8px;
@@ -1118,9 +1123,7 @@
             font-size: 12px;
         }
 
-        /* ============================================================
-           Firebase 同步狀態列
-           ============================================================ */
+        /* ── Firebase 同步 ── */
         .sync-bar {
             display: flex;
             align-items: center;
@@ -1440,10 +1443,7 @@
         }
 
         .split-label { font-size: 12px; opacity: 0.85; }
-
-        /* ============================================================
-           Welcome Screen - 歡迎畫面
-           ============================================================ */
+        /* ── 歡迎畫面 ── */
         .welcome-overlay {
             position: fixed;
             inset: 0;
@@ -1677,64 +1677,6 @@
             color: #155724;
         }
 
-        /* ============================================================
-           Print - 列印 / 匯出 PDF
-           ============================================================ */
-        @media print {
-            /* 隱藏所有操作介面 */
-            .sync-bar,
-            .tabs,
-            .toolbar,
-            .header-img-btn,
-            .activity-buttons,
-            .sort-btns,
-            .empty-day-hint,
-            .btn-primary,
-            .btn-secondary,
-            .itinerary-filter,
-            .day-select,
-            .map-open-all,
-            .welcome-overlay,
-            .lightbox,
-            .modal { display: none !important; }
-
-            /* 顯示所有 tab 內容（不只 active）*/
-            .tab-content {
-                display: block !important;
-                padding: 0 !important;
-                page-break-before: always;
-            }
-            .tab-content:first-of-type { page-break-before: avoid; }
-
-            /* 容器不要陰影 */
-            .container {
-                box-shadow: none !important;
-                max-width: 100% !important;
-            }
-
-            /* header 簡化 */
-            header {
-                padding: 16px 0 !important;
-                -webkit-print-color-adjust: exact;
-                print-color-adjust: exact;
-            }
-
-            /* 每個 Day 不要斷頁 */
-            .day-card { page-break-inside: avoid; }
-
-            /* 活動卡片不要斷頁 */
-            .activity { page-break-inside: avoid; }
-
-            /* 保留背景色 */
-            * {
-                -webkit-print-color-adjust: exact;
-                print-color-adjust: exact;
-            }
-        }
-
-        /* ============================================================
-           Animations - 動畫
-           ============================================================ */
         @keyframes slideUp {
             from {
                 opacity: 0;
@@ -1746,15 +1688,16 @@
             }
         }
 
+        .day-card {
+            animation: slideUp 0.5s ease-out;
+        }
+
         .day-card:nth-child(1) { animation-delay: 0.1s; }
         .day-card:nth-child(2) { animation-delay: 0.2s; }
         .day-card:nth-child(3) { animation-delay: 0.3s; }
         .day-card:nth-child(4) { animation-delay: 0.4s; }
         .day-card:nth-child(5) { animation-delay: 0.5s; }
 
-        /* ============================================================
-           Responsive - 手機適配
-           ============================================================ */
         @media (max-width: 480px) {
             .container {
                 border-radius: 0;
@@ -1812,11 +1755,10 @@
         <div id="itinerary" class="tab-content active">
             <div class="toolbar">
                 <div class="toolbar-left">
-                    <button class="btn-primary" onclick="openItem('activity')">➕ 新增活動</button>
+                    <button class="btn-primary" onclick="openAddActivityModal()">➕ 新增活動</button>
                 </div>
                 <div class="toolbar-right">
-                    <button class="btn-secondary" onclick="exportData()">📤 匯出</button>
-                    <button class="btn-secondary" onclick="exportPDF()">🖨️ 存PDF</button>
+                    <button class="btn-secondary" onclick="exportPDF()">📄 匯出PDF</button>
                     <button class="btn-secondary" onclick="document.getElementById('importFile').click()">📥 匯入</button>
                     <input type="file" id="importFile" accept=".json" style="display:none;" onchange="importData(event)">
                     <button class="btn-secondary" onclick="resetData()">🔄 重設</button>
@@ -1830,7 +1772,7 @@
         <div id="expense" class="tab-content">
             <div class="toolbar">
                 <div class="toolbar-left">
-                    <button class="btn-primary" onclick="openItem('expense')">➕ 新增費用</button>
+                    <button class="btn-primary" onclick="openAddExpenseModal()">➕ 新增費用</button>
                 </div>
             </div>
             <div id="expense-chart"></div>
@@ -1843,7 +1785,7 @@
         <div id="checklist" class="tab-content">
             <div class="toolbar">
                 <div class="toolbar-left">
-                    <button class="btn-primary" onclick="openItem('checklist')">➕ 新增項目</button>
+                    <button class="btn-primary" onclick="openAddChecklistModal()">➕ 新增項目</button>
                 </div>
             </div>
             <div id="checklist-list"></div>
@@ -1853,7 +1795,7 @@
         <div id="map" class="tab-content">
             <div class="toolbar">
                 <div class="toolbar-left">
-                    <button class="btn-primary" onclick="openItem('place')">➕ 新增景點</button>
+                    <button class="btn-primary" onclick="openAddPlaceModal()">➕ 新增景點</button>
                 </div>
             </div>
             <div id="map-filter"></div>
@@ -1865,7 +1807,7 @@
             <div class="toolbar">
                 <div class="toolbar-left" style="gap:6px;">
                     <button class="btn-primary" onclick="openFlightModal()">✈️ 編輯航班</button>
-                    <button class="btn-secondary" onclick="openItem('hotel')">🏨 新增飯店</button>
+                    <button class="btn-secondary" onclick="openAddHotelModal()">🏨 新增飯店</button>
                 </div>
             </div>
             <div id="info-content"></div>
@@ -1903,7 +1845,7 @@
                 <h2 id="activityModalTitle">新增活動</h2>
                 <button class="close-btn" onclick="closeModal('activityModal')">✕</button>
             </div>
-            <form onsubmit="saveItem('activity', event)">
+            <form onsubmit="saveActivity(event)">
                 <div class="form-group">
                     <label>選擇日期</label>
                     <select id="activityDay" style="width: 100%; padding: 10px; border: 2px solid var(--border); border-radius: 6px;">
@@ -1979,7 +1921,7 @@
                 <h2 id="expenseModalTitle">新增費用</h2>
                 <button class="close-btn" onclick="closeModal('expenseModal')">✕</button>
             </div>
-            <form onsubmit="saveItem('expense', event)">
+            <form onsubmit="saveExpense(event)">
                 <div class="form-group">
                     <label>圖示 (emoji)</label>
                     <input type="text" id="expenseIcon" placeholder="例: ✈️" required>
@@ -2022,7 +1964,7 @@
                 <h2 id="checklistModalTitle">新增清單項目</h2>
                 <button class="close-btn" onclick="closeModal('checklistModal')">✕</button>
             </div>
-            <form onsubmit="saveItem('checklist', event)">
+            <form onsubmit="saveChecklistItem(event)">
                 <div class="form-group">
                     <label>分類</label>
                     <select id="checklistCategory" style="width: 100%; padding: 10px; border: 2px solid var(--border); border-radius: 6px;">
@@ -2168,7 +2110,7 @@
                 <h2 id="placeModalTitle">📌 新增景點</h2>
                 <button class="close-btn" onclick="closeModal('placeModal')">✕</button>
             </div>
-            <form onsubmit="saveItem('place', event)">
+            <form onsubmit="savePlace(event)">
                 <div class="form-group">
                     <label>圖示 (emoji)</label>
                     <input type="text" id="placeIcon" placeholder="例: 🍜" required>
@@ -2256,7 +2198,7 @@
                 <h2 id="hotelModalTitle">🏨 新增飯店</h2>
                 <button class="close-btn" onclick="closeModal('hotelModal')">✕</button>
             </div>
-            <form onsubmit="saveItem('hotel', event)">
+            <form onsubmit="saveHotelData(event)">
                 <div class="form-group">
                     <label>飯店名稱</label>
                     <input type="text" id="hotelName" placeholder="Comfort Hotel Naha" required>
@@ -2317,38 +2259,10 @@
                 hotels: []
             }
         };
-        // ── localStorage 工具函數 ──
-        function loadStorage(key, defaultValue = null) {
-            try {
-                const raw = localStorage.getItem(key);
-                if (!raw) return defaultValue;
-                return JSON.parse(raw);
-            } catch (err) {
-                console.error(`讀取 ${key} 失敗:`, err);
-                localStorage.removeItem(key);
-                return defaultValue;
-            }
-        }
-
-        function saveStorage(key, data) {
-            try {
-                localStorage.setItem(key, JSON.stringify(data));
-            } catch (err) {
-                console.warn(`儲存 ${key} 失敗:`, err);
-            }
-        }
-
         // 有房間碼才讀 localStorage 資料；沒房間碼用空白範本（等使用者選擇加入或建立）
-        let appData;
-        try {
-            const hasRoom = localStorage.getItem('okinawaRoom');
-            appData = hasRoom
-                ? (loadStorage('okinawaData', JSON.parse(JSON.stringify(DEFAULT_DATA))))
-                : JSON.parse(JSON.stringify(DEFAULT_DATA));
-        } catch (err) {
-            console.error('appData 初始化失敗:', err);
-            appData = JSON.parse(JSON.stringify(DEFAULT_DATA));
-        }
+        let appData = localStorage.getItem('okinawaRoom')
+            ? (JSON.parse(localStorage.getItem('okinawaData')) || JSON.parse(JSON.stringify(DEFAULT_DATA)))
+            : JSON.parse(JSON.stringify(DEFAULT_DATA));
         let editingId = null;
         let editingDayId = null;
 
@@ -2705,281 +2619,15 @@
             if (tabName === 'info') fetchWeather();
         }
 
-        // ── 實體配置表 ──
-        const ENTITY_CONFIG = {
-            activity:  { key: 'activities',  label: '活動', path: null,   render: () => renderItinerary() },
-            expense:   { key: 'expenses',    label: '費用', path: null,   render: () => renderExpense() },
-            checklist: { key: 'checklists',  label: '項目', path: null,   render: () => renderChecklist() },
-            hotel:     { key: 'hotels',      label: '飯店', path: 'info', render: () => renderInfo() },
-            place:     { key: 'extraPlaces', label: '景點', path: null,   render: () => renderMap(currentMapDay) },
-        };
-
-        // ── Modal 配置表 ──
-        const MODAL_CONFIG = {
-            activity: {
-                modalId:    'activityModal',
-                titleEl:    'activityModalTitle',
-                addTitle:   '新增活動',
-                editTitle:  '編輯活動',
-                editingVar: 'editingId',
-                dataKey:    'activities',
-                fields: {
-                    activityDay:        { key: 'day',        default: 1  },
-                    activityCheckTime:  { key: 'checkTime',  default: '' },
-                    activityCheckLabel: { key: 'checkLabel', default: '' },
-                    activityIcon:       { key: 'icon',       default: '' },
-                    activityTitle:      { key: 'title',      default: '' },
-                    activityLocation:   { key: 'location',   default: '' },
-                    activityNotes:      { key: 'notes',      default: '' },
-                },
-                transform: { day: v => parseInt(v) || 1 },
-                beforeOpen: () => updateDayOptions(),
-                afterOpen: (item) => {
-                    // time 拆解成三個欄位
-                    const { start, end, note } = parseTimeString(item ? item.time || '' : '');
-                    document.getElementById('activityTimeStart').value = start;
-                    document.getElementById('activityTimeEnd').value   = end;
-                    document.getElementById('activityTimeNote').value  = note;
-                    // transport（巢狀物件，無法用 fields 配置）
-                    document.getElementById('activityTransportType').value     = item?.transport?.type     || '';
-                    document.getElementById('activityTransportDuration').value = item?.transport?.duration || '';
-                    // 圖片預覽
-                    pendingActivityImages = item ? [...(item.images || [])] : [];
-                    renderModalImgPreview();
-                    // 新增時帶入目前篩選的天
-                    if (!item) {
-                        const d = (typeof currentItineraryDay !== 'undefined' && currentItineraryDay !== 'all')
-                            ? currentItineraryDay : 1;
-                        document.getElementById('activityDay').value = d;
-                    }
-                },
-                beforeSave: (item) => {
-                    item.time   = buildTimeString();
-                    item.images = [...pendingActivityImages];
-                    item.transport = {
-                        type:     document.getElementById('activityTransportType').value     || '',
-                        duration: document.getElementById('activityTransportDuration').value || '',
-                    };
-                },
-                render: () => renderItinerary(),
-            },
-            expense: {
-                modalId:    'expenseModal',
-                titleEl:    'expenseModalTitle',
-                addTitle:   '新增費用',
-                editTitle:  '編輯費用',
-                editingVar: 'editingId',
-                dataKey:    'expenses',
-                fields: {
-                    expenseIcon:     { key: 'icon',     default: '' },
-                    expenseName:     { key: 'name',     default: '' },
-                    expenseDetail:   { key: 'detail',   default: '' },
-                    expenseAmount:   { key: 'amount',   default: '' },
-                    expenseCategory: { key: 'category', default: '其他' },
-                },
-                transform: { amount: v => parseInt(v) || 0 },
-                render: () => renderExpense(),
-            },
-            checklist: {
-                modalId:    'checklistModal',
-                titleEl:    'checklistModalTitle',
-                addTitle:   '新增清單項目',
-                editTitle:  '編輯清單項目',
-                editingVar: 'editingId',
-                dataKey:    'checklists',
-                fields: {
-                    checklistCategory: { key: 'category', default: '準備' },
-                    checklistContent:  { key: 'content',  default: '' },
-                },
-                // 保留 completed 欄位
-                preserve: (oldItem) => ({ completed: oldItem ? oldItem.completed : false }),
-                render: () => renderChecklist(),
-            },
-            hotel: {
-                modalId:    'hotelModal',
-                titleEl:    'hotelModalTitle',
-                addTitle:   '🏨 新增飯店',
-                editTitle:  '🏨 編輯飯店',
-                editingVar: 'editingHotelId',
-                dataPath:   'info',   // appData.info.hotels
-                dataKey:    'hotels',
-                fields: {
-                    hotelName:      { key: 'name',      default: '' },
-                    hotelMapUrl:    { key: 'mapUrl',    default: '' },
-                    hotelPlatform:  { key: 'platform',  default: '' },
-                    hotelBookingId: { key: 'bookingId', default: '' },
-                    hotelCheckIn:   { key: 'checkIn',   default: '' },
-                    hotelCheckOut:  { key: 'checkOut',  default: '' },
-                },
-                render: () => renderInfo(),
-            },
-            place: {
-                modalId:    'placeModal',
-                titleEl:    'placeModalTitle',
-                addTitle:   '📌 新增景點',
-                editTitle:  '📌 編輯景點',
-                editingVar: 'editingPlaceId',
-                dataKey:    'extraPlaces',
-                fields: {
-                    placeIcon:     { key: 'icon',     default: '📍' },
-                    placeName:     { key: 'name',     default: '' },
-                    placeLocation: { key: 'location', default: '' },
-                    placeNotes:    { key: 'notes',    default: '' },
-                    placeDay:      { key: 'day',      default: '0' },
-                },
-                transform:  { day: v => parseInt(v) || 0 },
-                beforeOpen: () => updatePlaceDayOptions(),
-                render:     () => renderMap(currentMapDay),
-            },
-        };
-
-        // ── 通用開啟 Modal（新增 / 編輯）──
-        function openItem(entityType, id = null) {
-            const cfg = MODAL_CONFIG[entityType];
-            if (!cfg) return console.error('未知 modal 實體:', entityType);
-
-            // 設定 editingVar
-            window[cfg.editingVar] = id;
-
-            // 取得資料
-            const arr = cfg.dataPath
-                ? appData[cfg.dataPath][cfg.dataKey]
-                : appData[cfg.dataKey];
-            const item = id ? (arr || []).find(i => i.id === id) : null;
-
-            // 設定 Modal 標題
-            document.getElementById(cfg.titleEl).textContent =
-                id ? cfg.editTitle : cfg.addTitle;
-
-            // 填入欄位
-            Object.entries(cfg.fields).forEach(([elId, fieldCfg]) => {
-                const el = document.getElementById(elId);
-                if (!el) return;
-                el.value = item ? (item[fieldCfg.key] ?? fieldCfg.default) : fieldCfg.default;
-            });
-
-            // 前置處理（如更新 Day 選單）
-            if (cfg.beforeOpen) cfg.beforeOpen();
-
-            // place 新增時：placeDay 預設為目前篩選的天
-            if (entityType === 'place' && !id) {
-                const el = document.getElementById('placeDay');
-                if (el) el.value = currentMapDay === 'all' ? '0' : String(currentMapDay);
-            }
-
-            // 後置處理（如拆解 time 欄位、載入圖片）
-            if (cfg.afterOpen) cfg.afterOpen(item);
-
-            openModal(cfg.modalId);
-        }
-
-        // ── 通用儲存 Modal ──
-        function saveItem(entityType, e) {
-            e.preventDefault();
-            const cfg = MODAL_CONFIG[entityType];
-            if (!cfg) return console.error('未知 modal 實體:', entityType);
-
-            const editingId = window[cfg.editingVar];
-
-            // 從欄位收集資料
-            const item = { id: editingId || generateId() };
-            Object.entries(cfg.fields).forEach(([elId, fieldCfg]) => {
-                const el = document.getElementById(elId);
-                let val = el ? el.value : fieldCfg.default;
-                if (cfg.transform && cfg.transform[fieldCfg.key]) {
-                    val = cfg.transform[fieldCfg.key](val);
-                }
-                item[fieldCfg.key] = val;
-            });
-
-            // 儲存前特殊處理（如組裝 time、transport、images）
-            if (cfg.beforeSave) cfg.beforeSave(item);
-
-            // 保留特殊欄位（如 completed）
-            if (cfg.preserve) {
-                const arr = cfg.dataPath
-                    ? appData[cfg.dataPath][cfg.dataKey]
-                    : appData[cfg.dataKey];
-                const oldItem = editingId ? arr.find(i => i.id === editingId) : null;
-                Object.assign(item, cfg.preserve(oldItem));
-            }
-
-            // 寫入資料
-            const arr = cfg.dataPath
-                ? appData[cfg.dataPath][cfg.dataKey]
-                : appData[cfg.dataKey];
-
-            if (!arr) {
-                if (cfg.dataPath) appData[cfg.dataPath][cfg.dataKey] = [];
-                else appData[cfg.dataKey] = [];
-            }
-
-            const targetArr = cfg.dataPath
-                ? appData[cfg.dataPath][cfg.dataKey]
-                : appData[cfg.dataKey];
-
-            if (editingId) {
-                const idx = targetArr.findIndex(i => i.id === editingId);
-                if (idx > -1) targetArr[idx] = item;
-            } else {
-                targetArr.push(item);
-            }
-
-            saveData();
-            cfg.render();
-            closeModal(cfg.modalId);
-            showSuccessMessage(`${ENTITY_CONFIG[entityType]?.label || entityType}已保存！`);
-            window[cfg.editingVar] = null;
-        }
-
-        // ── 通用 ID 產生器 ──
-        function generateId() {
-            return Date.now() + Math.floor(Math.random() * 10000);
-        }
-
-        // ── 通用刪除函數 ──
-        function deleteItem(entityType, id) {
-            const cfg = ENTITY_CONFIG[entityType];
-            if (!cfg) return console.error('未知實體:', entityType);
-            if (!confirm(`確定要刪除這個${cfg.label}嗎？`)) return;
-            const arr = cfg.path ? appData[cfg.path][cfg.key] : appData[cfg.key];
-            const idx = arr.findIndex(item => item.id === id);
-            if (idx === -1) return;
-            arr.splice(idx, 1);
-            saveData();
-            cfg.render();
-            showSuccessMessage(`${cfg.label}已刪除！`);
-        }
-
         // 保存數據到 localStorage
         function saveData() {
-            saveStorage('okinawaData', appData);
+            localStorage.setItem('okinawaData', JSON.stringify(appData));
         }
 
         // 渲染行程
         let currentItineraryDay = 'all';
 
-        function showRenderError(pageName) {
-            const containers = {
-                '行程': 'itinerary-list', '費用': 'expense-list',
-                '資訊': 'info-content',   '地圖': 'map-list'
-            };
-            const id = containers[pageName];
-            const el = id && document.getElementById(id);
-            if (el) {
-                el.innerHTML = `<div style="padding:40px 20px;text-align:center;color:#888;">
-                    <div style="font-size:36px;margin-bottom:8px;">⚠️</div>
-                    <div style="font-weight:600;margin-bottom:4px;">${pageName}頁載入失敗</div>
-                    <div style="font-size:12px;color:#aaa;">資料格式可能異常，請重新整理試試</div>
-                </div>`;
-            }
-        }
-
         function renderItinerary() {
-            try { _renderItinerary(); }
-            catch(e) { console.error('renderItinerary error:', e); showRenderError('行程'); }
-        }
-        function _renderItinerary() {
             const container = document.getElementById('itinerary-list');
             const filterEl  = document.getElementById('itinerary-filter');
             const days = {};
@@ -3046,6 +2694,13 @@
                 activities.forEach((a, idx) => {
                     const locSafe = (a.location || '').replace(/'/g, "\\'");
 
+                    // 第一個活動前加插入按鈕（插入到最前面）
+                    if (idx === 0) {
+                        html += `<div class="insert-btn-wrap">
+                            <button class="insert-btn" onclick="openInsertActivity(${day}, null)" title="在此新增活動">＋</button>
+                        </div>`;
+                    }
+
                     // 本活動有 transport → 在它「之前」插入連接線（代表從上一站來）
                     if (idx > 0 && a.transport && (a.transport.type || a.transport.duration)) {
                         const t = a.transport;
@@ -3098,11 +2753,14 @@
                                         <div class="activity-thumb-add" onclick="triggerActivityImgUpload(${a.id})" title="新增圖片">📎</div>
                                     </div>`}
                                     <div class="activity-buttons">
-                                        <button class="btn-sm btn-edit"   onclick="openItem('activity', ${a.id})">✏️ 編輯</button>
-                                        <button class="btn-sm btn-delete" onclick="deleteItem('activity', ${a.id})">🗑️ 刪除</button>
+                                        <button class="btn-sm btn-edit"   onclick="editActivity(${a.id})">✏️ 編輯</button>
+                                        <button class="btn-sm btn-delete" onclick="deleteActivity(${a.id})">🗑️ 刪除</button>
                                     </div>
                                 </div>
                             </div>
+                        </div>
+                        <div class="insert-btn-wrap">
+                            <button class="insert-btn" onclick="openInsertActivity(${a.day}, ${a.id})" title="在此後方新增活動">＋</button>
                         </div>
                     `;
                 });
@@ -3132,10 +2790,6 @@
         let splitPeople = parseInt(localStorage.getItem('okinawaSplit') || '1');
 
         function renderExpense() {
-            try { _renderExpense(); }
-            catch(e) { console.error('renderExpense error:', e); showRenderError('費用'); }
-        }
-        function _renderExpense() {
             const container      = document.getElementById('expense-list');
             const totalContainer = document.getElementById('expense-total');
             const chartContainer = document.getElementById('expense-chart');
@@ -3164,8 +2818,8 @@
                         </div>
                         <div style="display:flex;align-items:center;gap:8px;">
                             <div class="expense-amount">NT$${expense.amount.toLocaleString()}</div>
-                            <button class="btn-sm btn-edit" onclick="openItem('expense', ${expense.id})">✏️</button>
-                            <button class="btn-sm btn-delete" onclick="deleteItem('expense', ${expense.id})">🗑️</button>
+                            <button class="btn-sm btn-edit" onclick="editExpense(${expense.id})">✏️</button>
+                            <button class="btn-sm btn-delete" onclick="deleteExpense(${expense.id})">🗑️</button>
                         </div>
                     </div>`;
             });
@@ -3267,8 +2921,8 @@
                             <input type="checkbox" ${item.completed ? 'checked' : ''} onchange="toggleChecklistItem(${item.id})">
                             <span class="checklist-label">${item.content}</span>
                             <div class="checklist-actions">
-                                <button type="button" class="btn-sm btn-edit" onclick="openItem('checklist', ${item.id})">✏️</button>
-                                <button type="button" class="btn-sm btn-delete" onclick="deleteItem('checklist', ${item.id})">🗑️</button>
+                                <button type="button" class="btn-sm btn-edit" onclick="editChecklistItem(${item.id})">✏️</button>
+                                <button type="button" class="btn-sm btn-delete" onclick="deleteChecklistItem(${item.id})">🗑️</button>
                             </div>
                         </label>
                     `;
@@ -3280,10 +2934,6 @@
 
         // 渲染資訊
         function renderInfo() {
-            try { _renderInfo(); }
-            catch(e) { console.error('renderInfo error:', e); showRenderError('資訊'); }
-        }
-        function _renderInfo() {
             const container = document.getElementById('info-content');
             const info = appData.info;
 
@@ -3354,8 +3004,8 @@
                             <div style="font-size:14px;font-weight:800;color:var(--dark);flex:1;">${h.name}</div>
                             <div style="display:flex;gap:6px;flex-shrink:0;margin-left:8px;">
                                 ${h.mapUrl ? `<a href="${h.mapUrl}" target="_blank" style="background:var(--light);border:1px solid var(--border);border-radius:8px;padding:4px 8px;font-size:11px;font-weight:700;color:var(--secondary);text-decoration:none;">🗺️ 地圖</a>` : ''}
-                                <button class="btn-sm btn-edit" onclick="openItem('hotel', ${h.id})">✏️</button>
-                                <button class="btn-sm btn-delete" onclick="deleteItem('hotel', ${h.id})">🗑️</button>
+                                <button class="btn-sm btn-edit" onclick="editHotel(${h.id})">✏️</button>
+                                <button class="btn-sm btn-delete" onclick="deleteHotel(${h.id})">🗑️</button>
                             </div>
                         </div>
                         <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;font-size:12px;">
@@ -3383,7 +3033,54 @@
             container.innerHTML = html;
         }
 
-        // 活動編輯函數（由 MODAL_CONFIG activity 通用化處理）
+        // 活動編輯函數
+        let insertAfterActivityId = undefined; // null = 插在最前面，undefined = 加在最後
+
+        function openAddActivityModal() {
+            editingId = null;
+            insertAfterActivityId = undefined;
+            updateDayOptions();
+            document.getElementById('activityModalTitle').textContent = '新增活動';
+            document.getElementById('activityDay').value = 1;
+            document.getElementById('activityCheckTime').value  = '';
+            document.getElementById('activityCheckLabel').value = '';
+            document.getElementById('activityIcon').value = '';
+            document.getElementById('activityTitle').value = '';
+            document.getElementById('activityTimeStart').value = '';
+            document.getElementById('activityTimeEnd').value = '';
+            document.getElementById('activityTimeNote').value = '';
+            document.getElementById('activityLocation').value = '';
+            document.getElementById('activityNotes').value = '';
+            document.getElementById('activityTransportType').value = '';
+            document.getElementById('activityTransportDuration').value = '';
+            pendingActivityImages = [];
+            renderModalImgPreview();
+            openModal('activityModal');
+        }
+
+        function editActivity(id) {
+            editingId = id;
+            updateDayOptions();
+            const activity = appData.activities.find(a => a.id === id);
+            document.getElementById('activityModalTitle').textContent = '編輯活動';
+            document.getElementById('activityDay').value = activity.day;
+            document.getElementById('activityCheckTime').value  = activity.checkTime  || '';
+            document.getElementById('activityCheckLabel').value = activity.checkLabel || '';
+            document.getElementById('activityIcon').value = activity.icon;
+            document.getElementById('activityTitle').value = activity.title;
+            const { start, end, note } = parseTimeString(activity.time || '');
+            document.getElementById('activityTimeStart').value = start;
+            document.getElementById('activityTimeEnd').value = end;
+            document.getElementById('activityTimeNote').value = note;
+            document.getElementById('activityLocation').value = activity.location;
+            document.getElementById('activityNotes').value = activity.notes || '';
+            document.getElementById('activityTransportType').value = (activity.transport && activity.transport.type) || '';
+            document.getElementById('activityTransportDuration').value = (activity.transport && activity.transport.duration) || '';
+            pendingActivityImages = activity.images ? [...activity.images] : [];
+            renderModalImgPreview();
+            openModal('activityModal');
+        }
+
         // 解析舊格式 time 字串 → { start, end, note }
         function parseTimeString(str) {
             if (!str) return { start: '', end: '', note: '' };
@@ -3405,6 +3102,70 @@
             if (start && end) t += ` - ${end}`;
             if (note) t += (t ? ' | ' : '') + note;
             return t;
+        }
+
+        function saveActivity(e) {
+            e.preventDefault();
+            const activity = {
+                id: editingId || Math.max(...appData.activities.map(a => a.id), 0) + 1,
+                day: parseInt(document.getElementById('activityDay').value),
+                checkTime:  document.getElementById('activityCheckTime').value,
+                checkLabel: document.getElementById('activityCheckLabel').value.trim(),
+                icon: document.getElementById('activityIcon').value,
+                title: document.getElementById('activityTitle').value,
+                time: buildTimeString(),
+                location: document.getElementById('activityLocation').value,
+                notes: document.getElementById('activityNotes').value,
+                images: [...pendingActivityImages],
+                transport: {
+                    type: document.getElementById('activityTransportType').value,
+                    duration: document.getElementById('activityTransportDuration').value
+                }
+            };
+
+            if (editingId) {
+                const index = appData.activities.findIndex(a => a.id === editingId);
+                appData.activities[index] = activity;
+            } else if (insertAfterActivityId === null) {
+                // 插到當天最前面
+                const dayActs = appData.activities.filter(a => a.day === activity.day);
+                const others  = appData.activities.filter(a => a.day !== activity.day);
+                appData.activities = [...others, activity, ...dayActs].sort((a,b) => a.day - b.day);
+            } else if (insertAfterActivityId !== undefined) {
+                // 插到指定活動後面
+                const targetDay = activity.day;
+                const dayActs   = appData.activities.filter(a => a.day === targetDay);
+                const others    = appData.activities.filter(a => a.day !== targetDay);
+                const afterIdx  = dayActs.findIndex(a => a.id === insertAfterActivityId);
+                
+                if (afterIdx === -1) {
+                    // 找不到目標活動，加在該天最後
+                    dayActs.push(activity);
+                } else {
+                    // 插在目標活動後面
+                    dayActs.splice(afterIdx + 1, 0, activity);
+                }
+                
+                appData.activities = [...others, ...dayActs].sort((a,b) => a.day - b.day);
+            } else {
+                // 一般新增：加在該天最後
+                appData.activities.push(activity);
+            }
+            insertAfterActivityId = undefined;
+
+            saveData();
+            renderItinerary();
+            closeModal('activityModal');
+            showSuccessMessage('活動已保存！');
+        }
+
+        function deleteActivity(id) {
+            if (confirm('確定要刪除這個活動嗎？')) {
+                appData.activities = appData.activities.filter(a => a.id !== id);
+                saveData();
+                renderItinerary();
+                showSuccessMessage('活動已刪除！');
+            }
         }
 
         // 從 time 字串計算停留時間（分鐘），無法解析回傳 null
@@ -3453,8 +3214,8 @@
             renderModalImgPreview();
         }
 
-        // ── 圖片壓縮（上傳前自動縮小到最大 640px，品質 0.65）──
-        function compressImage(file, maxSize = 640, quality = 0.65) {
+        // ── 圖片壓縮（上傳前自動縮小到最大 1024px，品質 0.82）──
+        function compressImage(file, maxSize = 1024, quality = 0.82) {
             return new Promise(resolve => {
                 const reader = new FileReader();
                 reader.onload = ev => {
@@ -3719,7 +3480,112 @@
             showSuccessMessage('標題已保存！');
         }
 
+        // 費用編輯函數
+        function openAddExpenseModal() {
+            editingId = null;
+            document.getElementById('expenseModalTitle').textContent = '新增費用';
+            document.getElementById('expenseIcon').value = '';
+            document.getElementById('expenseName').value = '';
+            document.getElementById('expenseDetail').value = '';
+            document.getElementById('expenseAmount').value = '';
+            document.getElementById('expenseCategory').value = '其他';
+            openModal('expenseModal');
+        }
+
+        function editExpense(id) {
+            editingId = id;
+            const expense = appData.expenses.find(e => e.id === id);
+            document.getElementById('expenseModalTitle').textContent = '編輯費用';
+            document.getElementById('expenseIcon').value = expense.icon;
+            document.getElementById('expenseName').value = expense.name;
+            document.getElementById('expenseDetail').value = expense.detail;
+            document.getElementById('expenseAmount').value = expense.amount;
+            document.getElementById('expenseCategory').value = expense.category || '其他';
+            openModal('expenseModal');
+        }
+
+        function saveExpense(e) {
+            e.preventDefault();
+            const expense = {
+                id: editingId || Math.max(...appData.expenses.map(e => e.id), 0) + 1,
+                icon: document.getElementById('expenseIcon').value,
+                name: document.getElementById('expenseName').value,
+                detail: document.getElementById('expenseDetail').value,
+                amount: parseInt(document.getElementById('expenseAmount').value),
+                category: document.getElementById('expenseCategory').value
+            };
+
+            if (editingId) {
+                const index = appData.expenses.findIndex(e => e.id === editingId);
+                appData.expenses[index] = expense;
+            } else {
+                appData.expenses.push(expense);
+            }
+
+            saveData();
+            renderExpense();
+            closeModal('expenseModal');
+            showSuccessMessage('費用已保存！');
+        }
+
+        function deleteExpense(id) {
+            if (confirm('確定要刪除這個費用嗎？')) {
+                appData.expenses = appData.expenses.filter(e => e.id !== id);
+                saveData();
+                renderExpense();
+                showSuccessMessage('費用已刪除！');
+            }
+        }
+
         // 清單編輯函數
+        function openAddChecklistModal() {
+            editingId = null;
+            document.getElementById('checklistModalTitle').textContent = '新增清單項目';
+            document.getElementById('checklistCategory').value = '準備';
+            document.getElementById('checklistContent').value = '';
+            openModal('checklistModal');
+        }
+
+        function editChecklistItem(id) {
+            editingId = id;
+            const item = appData.checklists.find(i => i.id === id);
+            document.getElementById('checklistModalTitle').textContent = '編輯清單項目';
+            document.getElementById('checklistCategory').value = item.category;
+            document.getElementById('checklistContent').value = item.content;
+            openModal('checklistModal');
+        }
+
+        function saveChecklistItem(e) {
+            e.preventDefault();
+            const item = {
+                id: editingId || Math.max(...appData.checklists.map(i => i.id), 0) + 1,
+                category: document.getElementById('checklistCategory').value,
+                content: document.getElementById('checklistContent').value,
+                completed: editingId ? appData.checklists.find(i => i.id === editingId).completed : false
+            };
+
+            if (editingId) {
+                const index = appData.checklists.findIndex(i => i.id === editingId);
+                appData.checklists[index] = item;
+            } else {
+                appData.checklists.push(item);
+            }
+
+            saveData();
+            renderChecklist();
+            closeModal('checklistModal');
+            showSuccessMessage('項目已保存！');
+        }
+
+        function deleteChecklistItem(id) {
+            if (confirm('確定要刪除這個項目嗎？')) {
+                appData.checklists = appData.checklists.filter(i => i.id !== id);
+                saveData();
+                renderChecklist();
+                showSuccessMessage('項目已刪除！');
+            }
+        }
+
         function toggleChecklistItem(id) {
             const item = appData.checklists.find(i => i.id === id);
             if (item) {
@@ -3765,6 +3631,61 @@
         // ── 飯店 ──
         let editingHotelId = null;
 
+        function openAddHotelModal() {
+            editingHotelId = null;
+            document.getElementById('hotelModalTitle').textContent = '🏨 新增飯店';
+            document.getElementById('hotelName').value      = '';
+            document.getElementById('hotelMapUrl').value    = '';
+            document.getElementById('hotelPlatform').value  = '';
+            document.getElementById('hotelBookingId').value = '';
+            document.getElementById('hotelCheckIn').value   = '';
+            document.getElementById('hotelCheckOut').value  = '';
+            openModal('hotelModal');
+        }
+
+        function editHotel(id) {
+            editingHotelId = id;
+            const h = appData.info.hotels.find(h => h.id === id);
+            document.getElementById('hotelModalTitle').textContent = '🏨 編輯飯店';
+            document.getElementById('hotelName').value      = h.name      || '';
+            document.getElementById('hotelMapUrl').value    = h.mapUrl    || '';
+            document.getElementById('hotelPlatform').value  = h.platform  || '';
+            document.getElementById('hotelBookingId').value = h.bookingId || '';
+            document.getElementById('hotelCheckIn').value   = h.checkIn   || '';
+            document.getElementById('hotelCheckOut').value  = h.checkOut  || '';
+            openModal('hotelModal');
+        }
+
+        function saveHotelData(e) {
+            e.preventDefault();
+            if (!appData.info.hotels) appData.info.hotels = [];
+            const hotel = {
+                id:        editingHotelId || Math.max(...appData.info.hotels.map(h => h.id), 0) + 1,
+                name:      document.getElementById('hotelName').value,
+                mapUrl:    document.getElementById('hotelMapUrl').value,
+                platform:  document.getElementById('hotelPlatform').value,
+                bookingId: document.getElementById('hotelBookingId').value,
+                checkIn:   document.getElementById('hotelCheckIn').value,
+                checkOut:  document.getElementById('hotelCheckOut').value
+            };
+            if (editingHotelId) {
+                const idx = appData.info.hotels.findIndex(h => h.id === editingHotelId);
+                appData.info.hotels[idx] = hotel;
+            } else {
+                appData.info.hotels.push(hotel);
+            }
+            saveData(); renderInfo(); closeModal('hotelModal');
+            showSuccessMessage('飯店已保存！');
+        }
+
+        function deleteHotel(id) {
+            if (confirm('確定要刪除這間飯店嗎？')) {
+                appData.info.hotels = appData.info.hotels.filter(h => h.id !== id);
+                saveData(); renderInfo();
+                showSuccessMessage('飯店已刪除！');
+            }
+        }
+
         // 模態控制
         function openModal(id) {
             document.getElementById(id).classList.add('active');
@@ -3784,32 +3705,92 @@
         }
 
         // 數據導出
-        function exportPDF() {
-            const prevMode = document.body.classList.contains('view-mode') ? 'view' : 'edit';
-            setMode('view');
+        async function exportPDF() {
+            const btn = document.querySelector('[onclick="exportPDF()"]');
+            const origText = btn ? btn.textContent : '';
+            if (btn) { btn.textContent = '⏳ 產生中…'; btn.disabled = true; }
 
-            // 暫時顯示所有 tab 內容
-            const contents = document.querySelectorAll('.tab-content');
-            contents.forEach(el => el.style.display = 'block');
+            try {
+                // 切換到全部行程，確保完整內容
+                const prevDay = currentItineraryDay;
+                filterItinerary('all');
+                await new Promise(r => setTimeout(r, 100)); // 等 render
 
-            window.print();
+                const target = document.getElementById('itinerary-list');
+                const { jsPDF } = window.jspdf;
 
-            // 還原 tab 顯示狀態
-            contents.forEach(el => el.style.display = '');
-            setMode(prevMode);
-        }
+                // A4 尺寸
+                const pageW = 210, pageH = 297;
+                const pdf = new jsPDF({ unit: 'mm', format: 'a4', orientation: 'portrait' });
 
-        function exportData() {
-            const dataStr = JSON.stringify(appData, null, 2);
-            const blob = new Blob([dataStr], { type: 'application/json' });
-            const url = URL.createObjectURL(blob);
-            const a = document.createElement('a');
-            a.href = url;
-            const title = (appData.trip && appData.trip.title) || 'itinerary';
-            a.download = `${title}-備份.json`;
-            a.click();
-            URL.revokeObjectURL(url);
-            showSuccessMessage('已匯出！');
+                // 封面頁
+                const trip = appData.trip || {};
+                pdf.setFillColor(0, 168, 168);
+                pdf.rect(0, 0, pageW, pageH, 'F');
+                pdf.setTextColor(255, 255, 255);
+                pdf.setFontSize(28);
+                pdf.setFont('helvetica', 'bold');
+                const tripTitle = `${trip.emoji || '🌏'} ${trip.title || '旅遊行程'}`;
+                pdf.text(tripTitle, pageW / 2, 110, { align: 'center' });
+                pdf.setFontSize(14);
+                pdf.setFont('helvetica', 'normal');
+                if (trip.startDate && trip.endDate) {
+                    pdf.text(`${trip.startDate} ～ ${trip.endDate}`, pageW / 2, 130, { align: 'center' });
+                }
+                if (trip.description) {
+                    pdf.text(trip.description, pageW / 2, 145, { align: 'center' });
+                }
+                pdf.setFontSize(11);
+                pdf.setTextColor(200, 240, 240);
+                pdf.text(`匯出日期：${new Date().toLocaleDateString('zh-TW')}`, pageW / 2, pageH - 20, { align: 'center' });
+
+                // 截圖行程內容
+                pdf.addPage();
+                const canvas = await html2canvas(target, {
+                    scale: 2,
+                    useCORS: true,
+                    backgroundColor: '#ffffff',
+                    logging: false,
+                    ignoreElements: el =>
+                        el.classList?.contains('activity-buttons') ||
+                        el.classList?.contains('toolbar') ||
+                        el.classList?.contains('sort-arrows'),
+                });
+
+                const imgData = canvas.toDataURL('image/jpeg', 0.92);
+                const imgW = pageW - 20; // 左右各 10mm 邊距
+                const imgH = (canvas.height * imgW) / canvas.width;
+                const margin = 10;
+                let y = margin;
+                let remainH = imgH;
+
+                // 分頁處理
+                while (remainH > 0) {
+                    const sliceH = Math.min(remainH, pageH - margin * 2);
+                    const srcY = (imgH - remainH) / imgH * canvas.height;
+                    const sliceCanvas = document.createElement('canvas');
+                    sliceCanvas.width = canvas.width;
+                    sliceCanvas.height = (sliceH / imgH) * canvas.height;
+                    const ctx = sliceCanvas.getContext('2d');
+                    ctx.drawImage(canvas, 0, srcY, canvas.width, sliceCanvas.height, 0, 0, canvas.width, sliceCanvas.height);
+                    const sliceData = sliceCanvas.toDataURL('image/jpeg', 0.92);
+                    pdf.addImage(sliceData, 'JPEG', margin, y, imgW, sliceH);
+                    remainH -= sliceH;
+                    if (remainH > 0) { pdf.addPage(); y = margin; }
+                }
+
+                const filename = `${trip.title || '旅遊行程'}-行程表.pdf`;
+                pdf.save(filename);
+                showSuccessMessage('PDF 已匯出！');
+
+                // 恢復篩選狀態
+                filterItinerary(prevDay);
+            } catch (e) {
+                console.error('PDF 匯出失敗:', e);
+                alert('PDF 匯出失敗，請稍後再試。');
+            } finally {
+                if (btn) { btn.textContent = origText; btn.disabled = false; }
+            }
         }
 
         function importData(event) {
@@ -3879,8 +3860,14 @@
 
         // ── 地圖頁 ──
 
+        function openInsertActivity(day, afterId) {
+            insertAfterActivityId = afterId; // null 表示插在最前，有 id 表示插在該活動後
+            openAddActivityModal();
+            document.getElementById('activityDay').value = day;
+        }
+
         function openAddActivityForDay(day) {
-            openItem('activity');
+            openAddActivityModal();
             document.getElementById('activityDay').value = day;
         }
 
@@ -3895,6 +3882,32 @@
         let editingPlaceId = null;
 
         // ── 額外景點 CRUD ──
+        function openAddPlaceModal() {
+            editingPlaceId = null;
+            document.getElementById('placeModalTitle').textContent = '📌 新增景點';
+            document.getElementById('placeIcon').value     = '📍';
+            document.getElementById('placeName').value     = '';
+            document.getElementById('placeLocation').value = '';
+            document.getElementById('placeNotes').value    = '';
+            updatePlaceDayOptions();
+            document.getElementById('placeDay').value = currentMapDay === 'all' ? '0' : String(currentMapDay);
+            openModal('placeModal');
+        }
+
+        function editPlace(id) {
+            editingPlaceId = id;
+            const p = appData.extraPlaces.find(p => p.id === id);
+            if (!p) return;
+            document.getElementById('placeModalTitle').textContent = '📌 編輯景點';
+            document.getElementById('placeIcon').value     = p.icon || '📍';
+            document.getElementById('placeName').value     = p.name || '';
+            document.getElementById('placeLocation').value = p.location || '';
+            document.getElementById('placeNotes').value    = p.notes || '';
+            updatePlaceDayOptions();
+            document.getElementById('placeDay').value = String(p.day || 0);
+            openModal('placeModal');
+        }
+
         function updatePlaceDayOptions() {
             const sel = document.getElementById('placeDay');
             sel.innerHTML = '<option value="0">📌 未排程（想去清單）</option>';
@@ -3908,11 +3921,37 @@
             }
         }
 
-        function renderMap(filterDay) {
-            try { _renderMap(filterDay); }
-            catch(e) { console.error('renderMap error:', e); showRenderError('地圖'); }
+        function savePlace(e) {
+            e.preventDefault();
+            const place = {
+                id: editingPlaceId || Math.max(0, ...appData.extraPlaces.map(p => p.id)) + 1,
+                icon:     document.getElementById('placeIcon').value     || '📍',
+                name:     document.getElementById('placeName').value,
+                location: document.getElementById('placeLocation').value,
+                notes:    document.getElementById('placeNotes').value,
+                day:      parseInt(document.getElementById('placeDay').value) || 0
+            };
+            if (editingPlaceId) {
+                const idx = appData.extraPlaces.findIndex(p => p.id === editingPlaceId);
+                appData.extraPlaces[idx] = place;
+            } else {
+                appData.extraPlaces.push(place);
+            }
+            saveData();
+            renderMap(currentMapDay);
+            closeModal('placeModal');
+            showSuccessMessage('景點已保存！');
         }
-        function _renderMap(filterDay) {
+
+        function deletePlace(id) {
+            if (!confirm('確定要刪除這個景點？')) return;
+            appData.extraPlaces = appData.extraPlaces.filter(p => p.id !== id);
+            saveData();
+            renderMap(currentMapDay);
+            showSuccessMessage('景點已刪除');
+        }
+
+        function renderMap(filterDay) {
             currentMapDay = filterDay;
             const numDays = getTripDays();
             const dayDates = [''];
@@ -4013,8 +4052,8 @@
             const isExtra = p._type === 'extra';
             const editBtns = isExtra
                 ? `<div style="display:flex;flex-direction:column;gap:3px;flex-shrink:0;margin-left:6px;">
-                    <button class="btn-sm btn-edit" style="padding:2px 6px;font-size:10px;" onclick="event.preventDefault();event.stopPropagation();openItem('place', ${p.id})">✏️</button>
-                    <button class="btn-sm btn-delete" style="padding:2px 6px;font-size:10px;" onclick="event.preventDefault();event.stopPropagation();deleteItem('place', ${p.id})">🗑️</button>
+                    <button class="btn-sm btn-edit" style="padding:2px 6px;font-size:10px;" onclick="event.preventDefault();event.stopPropagation();editPlace(${p.id})">✏️</button>
+                    <button class="btn-sm btn-delete" style="padding:2px 6px;font-size:10px;" onclick="event.preventDefault();event.stopPropagation();deletePlace(${p.id})">🗑️</button>
                   </div>`
                 : '';
             return `
@@ -4195,26 +4234,34 @@
 
     let db = null;
     try {
+        console.log('[Firebase] Initializing...');
         if (!firebase.apps.length) {
             firebase.initializeApp(firebaseConfig);
+            console.log('[Firebase] initializeApp done');
+        } else {
+            console.log('[Firebase] Already initialized');
         }
         db = firebase.database();
+        console.log('[Firebase] database() done, db:', db ? 'OK' : 'NULL');
 
-        // Firebase 連線狀態監聽：網路恢復時自動重連
+        // Firebase 連線狀態監聽 - Safari 上要等 db 就緒
         db.ref('.info/connected').on('value', snap => {
             const connected = snap && snap.val() === true;
+            console.log('[Firebase] .info/connected:', connected);
             if (connected && currentRoom) {
                 const lbl = document.getElementById('syncLabel');
                 if (lbl && (lbl.textContent === '連線逾時' || lbl.textContent === '同步失敗')) {
+                    console.log('[Firebase] Auto-reconnect triggered');
                     joinRoom(currentRoom);
                 }
             }
         }, err => {
-            console.error('Firebase connected listener error:', err);
+            console.error('[Firebase] connected listener error:', err);
         });
+        console.log('[Firebase] Setup complete');
     } catch(e) {
-        console.error('Firebase init failed:', e);
-        alert('Firebase 初始化失敗，請重新整理頁面。');
+        console.error('[Firebase] Init FAILED:', e);
+        alert('Firebase 初始化失敗，請重新整理頁面。錯誤訊息：' + e.message);
     }
 
     // ── UI helpers ──
@@ -4327,7 +4374,7 @@
             try {
                 appData = snap.val();
                 migrateData();
-                saveStorage('okinawaData', appData);
+                localStorage.setItem('okinawaData', JSON.stringify(appData));
                 initBanner();
                 renderTripHeader();
                 renderItinerary();
@@ -4378,7 +4425,7 @@
 
     const _origSaveData = saveData;
     saveData = function() {
-        saveStorage('okinawaData', appData);
+        localStorage.setItem('okinawaData', JSON.stringify(appData));
         if (currentRoom && !isSyncing) {
             setSyncStatus('syncing', '同步中…');
             ignoreNextSnapshot = true;
