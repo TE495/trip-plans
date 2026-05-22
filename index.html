@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="theme-color" content="#00A8A8">
     <!-- 版本號：每次上傳 GitHub 時更新，控制快取更新 -->
-    <meta name="version" content="20250521-11">
+    <meta name="version" content="20250521-10">
     <title>旅遊行程規劃</title>
 
     <!-- Open Graph：控制 LINE / FB / iMessage 連結預覽 -->
@@ -1774,7 +1774,7 @@
         <div id="expense" class="tab-content">
             <div class="toolbar">
                 <div class="toolbar-left">
-                    <button class="btn-primary" onclick="openItem('expense')">➕ 新增費用</button>
+                    <button class="btn-primary" onclick="openAddExpenseModal()">➕ 新增費用</button>
                 </div>
             </div>
             <div id="expense-chart"></div>
@@ -1787,7 +1787,7 @@
         <div id="checklist" class="tab-content">
             <div class="toolbar">
                 <div class="toolbar-left">
-                    <button class="btn-primary" onclick="openItem('checklist')">➕ 新增項目</button>
+                    <button class="btn-primary" onclick="openAddChecklistModal()">➕ 新增項目</button>
                 </div>
             </div>
             <div id="checklist-list"></div>
@@ -1797,7 +1797,7 @@
         <div id="map" class="tab-content">
             <div class="toolbar">
                 <div class="toolbar-left">
-                    <button class="btn-primary" onclick="openItem('place')">➕ 新增景點</button>
+                    <button class="btn-primary" onclick="openAddPlaceModal()">➕ 新增景點</button>
                 </div>
             </div>
             <div id="map-filter"></div>
@@ -1809,7 +1809,7 @@
             <div class="toolbar">
                 <div class="toolbar-left" style="gap:6px;">
                     <button class="btn-primary" onclick="openFlightModal()">✈️ 編輯航班</button>
-                    <button class="btn-secondary" onclick="openItem('hotel')">🏨 新增飯店</button>
+                    <button class="btn-secondary" onclick="openAddHotelModal()">🏨 新增飯店</button>
                 </div>
             </div>
             <div id="info-content"></div>
@@ -1923,7 +1923,7 @@
                 <h2 id="expenseModalTitle">新增費用</h2>
                 <button class="close-btn" onclick="closeModal('expenseModal')">✕</button>
             </div>
-            <form onsubmit="saveItem('expense', event)">
+            <form onsubmit="saveExpense(event)">
                 <div class="form-group">
                     <label>圖示 (emoji)</label>
                     <input type="text" id="expenseIcon" placeholder="例: ✈️" required>
@@ -1966,7 +1966,7 @@
                 <h2 id="checklistModalTitle">新增清單項目</h2>
                 <button class="close-btn" onclick="closeModal('checklistModal')">✕</button>
             </div>
-            <form onsubmit="saveItem('checklist', event)">
+            <form onsubmit="saveChecklistItem(event)">
                 <div class="form-group">
                     <label>分類</label>
                     <select id="checklistCategory" style="width: 100%; padding: 10px; border: 2px solid var(--border); border-radius: 6px;">
@@ -2112,7 +2112,7 @@
                 <h2 id="placeModalTitle">📌 新增景點</h2>
                 <button class="close-btn" onclick="closeModal('placeModal')">✕</button>
             </div>
-            <form onsubmit="saveItem('place', event)">
+            <form onsubmit="savePlace(event)">
                 <div class="form-group">
                     <label>圖示 (emoji)</label>
                     <input type="text" id="placeIcon" placeholder="例: 🍜" required>
@@ -2200,7 +2200,7 @@
                 <h2 id="hotelModalTitle">🏨 新增飯店</h2>
                 <button class="close-btn" onclick="closeModal('hotelModal')">✕</button>
             </div>
-            <form onsubmit="saveItem('hotel', event)">
+            <form onsubmit="saveHotelData(event)">
                 <div class="form-group">
                     <label>飯店名稱</label>
                     <input type="text" id="hotelName" placeholder="Comfort Hotel Naha" required>
@@ -2651,177 +2651,12 @@
 
         // ── 實體配置表 ──
         const ENTITY_CONFIG = {
-            activity:  { key: 'activities',  label: '活動', path: null,   render: () => renderItinerary() },
-            expense:   { key: 'expenses',    label: '費用', path: null,   render: () => renderExpense() },
-            checklist: { key: 'checklists',  label: '項目', path: null,   render: () => renderChecklist() },
-            hotel:     { key: 'hotels',      label: '飯店', path: 'info', render: () => renderInfo() },
-            place:     { key: 'extraPlaces', label: '景點', path: null,   render: () => renderMap(currentMapDay) },
+            activity:  { key: 'activities',  label: '活動', path: null,         render: () => renderItinerary() },
+            expense:   { key: 'expenses',    label: '費用', path: null,         render: () => renderExpense() },
+            checklist: { key: 'checklists',  label: '項目', path: null,         render: () => renderChecklist() },
+            hotel:     { key: 'hotels',      label: '飯店', path: 'info',       render: () => renderInfo() },
+            place:     { key: 'extraPlaces', label: '景點', path: null,         render: () => renderMap(currentMapDay) },
         };
-
-        // ── Modal 配置表 ──
-        const MODAL_CONFIG = {
-            expense: {
-                modalId:    'expenseModal',
-                titleEl:    'expenseModalTitle',
-                addTitle:   '新增費用',
-                editTitle:  '編輯費用',
-                editingVar: 'editingId',
-                dataKey:    'expenses',
-                fields: {
-                    expenseIcon:     { key: 'icon',     default: '' },
-                    expenseName:     { key: 'name',     default: '' },
-                    expenseDetail:   { key: 'detail',   default: '' },
-                    expenseAmount:   { key: 'amount',   default: '' },
-                    expenseCategory: { key: 'category', default: '其他' },
-                },
-                transform: { amount: v => parseInt(v) || 0 },
-                render: () => renderExpense(),
-            },
-            checklist: {
-                modalId:    'checklistModal',
-                titleEl:    'checklistModalTitle',
-                addTitle:   '新增清單項目',
-                editTitle:  '編輯清單項目',
-                editingVar: 'editingId',
-                dataKey:    'checklists',
-                fields: {
-                    checklistCategory: { key: 'category', default: '準備' },
-                    checklistContent:  { key: 'content',  default: '' },
-                },
-                // 保留 completed 欄位
-                preserve: (oldItem) => ({ completed: oldItem ? oldItem.completed : false }),
-                render: () => renderChecklist(),
-            },
-            hotel: {
-                modalId:    'hotelModal',
-                titleEl:    'hotelModalTitle',
-                addTitle:   '🏨 新增飯店',
-                editTitle:  '🏨 編輯飯店',
-                editingVar: 'editingHotelId',
-                dataPath:   'info',   // appData.info.hotels
-                dataKey:    'hotels',
-                fields: {
-                    hotelName:      { key: 'name',      default: '' },
-                    hotelMapUrl:    { key: 'mapUrl',    default: '' },
-                    hotelPlatform:  { key: 'platform',  default: '' },
-                    hotelBookingId: { key: 'bookingId', default: '' },
-                    hotelCheckIn:   { key: 'checkIn',   default: '' },
-                    hotelCheckOut:  { key: 'checkOut',  default: '' },
-                },
-                render: () => renderInfo(),
-            },
-            place: {
-                modalId:    'placeModal',
-                titleEl:    'placeModalTitle',
-                addTitle:   '📌 新增景點',
-                editTitle:  '📌 編輯景點',
-                editingVar: 'editingPlaceId',
-                dataKey:    'extraPlaces',
-                fields: {
-                    placeIcon:     { key: 'icon',     default: '📍' },
-                    placeName:     { key: 'name',     default: '' },
-                    placeLocation: { key: 'location', default: '' },
-                    placeNotes:    { key: 'notes',    default: '' },
-                    placeDay:      { key: 'day',      default: '0' },
-                },
-                transform:  { day: v => parseInt(v) || 0 },
-                beforeOpen: () => updatePlaceDayOptions(),
-                render:     () => renderMap(currentMapDay),
-            },
-        };
-
-        // ── 通用開啟 Modal（新增 / 編輯）──
-        function openItem(entityType, id = null) {
-            const cfg = MODAL_CONFIG[entityType];
-            if (!cfg) return console.error('未知 modal 實體:', entityType);
-
-            // 設定 editingVar
-            window[cfg.editingVar] = id;
-
-            // 取得資料
-            const arr = cfg.dataPath
-                ? appData[cfg.dataPath][cfg.dataKey]
-                : appData[cfg.dataKey];
-            const item = id ? (arr || []).find(i => i.id === id) : null;
-
-            // 設定 Modal 標題
-            document.getElementById(cfg.titleEl).textContent =
-                id ? cfg.editTitle : cfg.addTitle;
-
-            // 填入欄位
-            Object.entries(cfg.fields).forEach(([elId, fieldCfg]) => {
-                const el = document.getElementById(elId);
-                if (!el) return;
-                el.value = item ? (item[fieldCfg.key] ?? fieldCfg.default) : fieldCfg.default;
-            });
-
-            // 前置處理（如更新 Day 選單）
-            if (cfg.beforeOpen) cfg.beforeOpen();
-
-            // place 新增時：placeDay 預設為目前篩選的天
-            if (entityType === 'place' && !id) {
-                const el = document.getElementById('placeDay');
-                if (el) el.value = currentMapDay === 'all' ? '0' : String(currentMapDay);
-            }
-
-            openModal(cfg.modalId);
-        }
-
-        // ── 通用儲存 Modal ──
-        function saveItem(entityType, e) {
-            e.preventDefault();
-            const cfg = MODAL_CONFIG[entityType];
-            if (!cfg) return console.error('未知 modal 實體:', entityType);
-
-            const editingId = window[cfg.editingVar];
-
-            // 從欄位收集資料
-            const item = { id: editingId || generateId() };
-            Object.entries(cfg.fields).forEach(([elId, fieldCfg]) => {
-                const el = document.getElementById(elId);
-                let val = el ? el.value : fieldCfg.default;
-                if (cfg.transform && cfg.transform[fieldCfg.key]) {
-                    val = cfg.transform[fieldCfg.key](val);
-                }
-                item[fieldCfg.key] = val;
-            });
-
-            // 保留特殊欄位（如 completed）
-            if (cfg.preserve) {
-                const arr = cfg.dataPath
-                    ? appData[cfg.dataPath][cfg.dataKey]
-                    : appData[cfg.dataKey];
-                const oldItem = editingId ? arr.find(i => i.id === editingId) : null;
-                Object.assign(item, cfg.preserve(oldItem));
-            }
-
-            // 寫入資料
-            const arr = cfg.dataPath
-                ? appData[cfg.dataPath][cfg.dataKey]
-                : appData[cfg.dataKey];
-
-            if (!arr) {
-                if (cfg.dataPath) appData[cfg.dataPath][cfg.dataKey] = [];
-                else appData[cfg.dataKey] = [];
-            }
-
-            const targetArr = cfg.dataPath
-                ? appData[cfg.dataPath][cfg.dataKey]
-                : appData[cfg.dataKey];
-
-            if (editingId) {
-                const idx = targetArr.findIndex(i => i.id === editingId);
-                if (idx > -1) targetArr[idx] = item;
-            } else {
-                targetArr.push(item);
-            }
-
-            saveData();
-            cfg.render();
-            closeModal(cfg.modalId);
-            showSuccessMessage(`${ENTITY_CONFIG[entityType]?.label || entityType}已保存！`);
-            window[cfg.editingVar] = null;
-        }
 
         // ── 通用 ID 產生器 ──
         function generateId() {
@@ -3055,7 +2890,7 @@
                         </div>
                         <div style="display:flex;align-items:center;gap:8px;">
                             <div class="expense-amount">NT$${expense.amount.toLocaleString()}</div>
-                            <button class="btn-sm btn-edit" onclick="openItem('expense', ${expense.id})">✏️</button>
+                            <button class="btn-sm btn-edit" onclick="editExpense(${expense.id})">✏️</button>
                             <button class="btn-sm btn-delete" onclick="deleteItem('expense', ${expense.id})">🗑️</button>
                         </div>
                     </div>`;
@@ -3158,7 +2993,7 @@
                             <input type="checkbox" ${item.completed ? 'checked' : ''} onchange="toggleChecklistItem(${item.id})">
                             <span class="checklist-label">${item.content}</span>
                             <div class="checklist-actions">
-                                <button type="button" class="btn-sm btn-edit" onclick="openItem('checklist', ${item.id})">✏️</button>
+                                <button type="button" class="btn-sm btn-edit" onclick="editChecklistItem(${item.id})">✏️</button>
                                 <button type="button" class="btn-sm btn-delete" onclick="deleteItem('checklist', ${item.id})">🗑️</button>
                             </div>
                         </label>
@@ -3245,7 +3080,7 @@
                             <div style="font-size:14px;font-weight:800;color:var(--dark);flex:1;">${h.name}</div>
                             <div style="display:flex;gap:6px;flex-shrink:0;margin-left:8px;">
                                 ${h.mapUrl ? `<a href="${h.mapUrl}" target="_blank" style="background:var(--light);border:1px solid var(--border);border-radius:8px;padding:4px 8px;font-size:11px;font-weight:700;color:var(--secondary);text-decoration:none;">🗺️ 地圖</a>` : ''}
-                                <button class="btn-sm btn-edit" onclick="openItem('hotel', ${h.id})">✏️</button>
+                                <button class="btn-sm btn-edit" onclick="editHotel(${h.id})">✏️</button>
                                 <button class="btn-sm btn-delete" onclick="deleteItem('hotel', ${h.id})">🗑️</button>
                             </div>
                         </div>
@@ -3689,7 +3524,94 @@
             showSuccessMessage('標題已保存！');
         }
 
+        // 費用編輯函數
+        function openAddExpenseModal() {
+            editingId = null;
+            document.getElementById('expenseModalTitle').textContent = '新增費用';
+            document.getElementById('expenseIcon').value = '';
+            document.getElementById('expenseName').value = '';
+            document.getElementById('expenseDetail').value = '';
+            document.getElementById('expenseAmount').value = '';
+            document.getElementById('expenseCategory').value = '其他';
+            openModal('expenseModal');
+        }
+
+        function editExpense(id) {
+            editingId = id;
+            const expense = appData.expenses.find(e => e.id === id);
+            document.getElementById('expenseModalTitle').textContent = '編輯費用';
+            document.getElementById('expenseIcon').value = expense.icon;
+            document.getElementById('expenseName').value = expense.name;
+            document.getElementById('expenseDetail').value = expense.detail;
+            document.getElementById('expenseAmount').value = expense.amount;
+            document.getElementById('expenseCategory').value = expense.category || '其他';
+            openModal('expenseModal');
+        }
+
+        function saveExpense(e) {
+            e.preventDefault();
+            const expense = {
+                id: editingId || generateId(),
+                icon: document.getElementById('expenseIcon').value,
+                name: document.getElementById('expenseName').value,
+                detail: document.getElementById('expenseDetail').value,
+                amount: parseInt(document.getElementById('expenseAmount').value),
+                category: document.getElementById('expenseCategory').value
+            };
+
+            if (editingId) {
+                const index = appData.expenses.findIndex(e => e.id === editingId);
+                appData.expenses[index] = expense;
+            } else {
+                appData.expenses.push(expense);
+            }
+
+            saveData();
+            renderExpense();
+            closeModal('expenseModal');
+            showSuccessMessage('費用已保存！');
+        }
+
         // 清單編輯函數
+        function openAddChecklistModal() {
+            editingId = null;
+            document.getElementById('checklistModalTitle').textContent = '新增清單項目';
+            document.getElementById('checklistCategory').value = '準備';
+            document.getElementById('checklistContent').value = '';
+            openModal('checklistModal');
+        }
+
+        function editChecklistItem(id) {
+            editingId = id;
+            const item = appData.checklists.find(i => i.id === id);
+            document.getElementById('checklistModalTitle').textContent = '編輯清單項目';
+            document.getElementById('checklistCategory').value = item.category;
+            document.getElementById('checklistContent').value = item.content;
+            openModal('checklistModal');
+        }
+
+        function saveChecklistItem(e) {
+            e.preventDefault();
+            const item = {
+                id: editingId || generateId(),
+                category: document.getElementById('checklistCategory').value,
+                content: document.getElementById('checklistContent').value,
+                completed: editingId ? appData.checklists.find(i => i.id === editingId).completed : false
+            };
+
+            if (editingId) {
+                const index = appData.checklists.findIndex(i => i.id === editingId);
+                appData.checklists[index] = item;
+            } else {
+                appData.checklists.push(item);
+            }
+
+            saveData();
+            renderChecklist();
+            closeModal('checklistModal');
+            showSuccessMessage('項目已保存！');
+        }
+
         function toggleChecklistItem(id) {
             const item = appData.checklists.find(i => i.id === id);
             if (item) {
@@ -3734,6 +3656,53 @@
 
         // ── 飯店 ──
         let editingHotelId = null;
+
+        function openAddHotelModal() {
+            editingHotelId = null;
+            document.getElementById('hotelModalTitle').textContent = '🏨 新增飯店';
+            document.getElementById('hotelName').value      = '';
+            document.getElementById('hotelMapUrl').value    = '';
+            document.getElementById('hotelPlatform').value  = '';
+            document.getElementById('hotelBookingId').value = '';
+            document.getElementById('hotelCheckIn').value   = '';
+            document.getElementById('hotelCheckOut').value  = '';
+            openModal('hotelModal');
+        }
+
+        function editHotel(id) {
+            editingHotelId = id;
+            const h = appData.info.hotels.find(h => h.id === id);
+            document.getElementById('hotelModalTitle').textContent = '🏨 編輯飯店';
+            document.getElementById('hotelName').value      = h.name      || '';
+            document.getElementById('hotelMapUrl').value    = h.mapUrl    || '';
+            document.getElementById('hotelPlatform').value  = h.platform  || '';
+            document.getElementById('hotelBookingId').value = h.bookingId || '';
+            document.getElementById('hotelCheckIn').value   = h.checkIn   || '';
+            document.getElementById('hotelCheckOut').value  = h.checkOut  || '';
+            openModal('hotelModal');
+        }
+
+        function saveHotelData(e) {
+            e.preventDefault();
+            if (!appData.info.hotels) appData.info.hotels = [];
+            const hotel = {
+                id:        editingHotelId || generateId(),
+                name:      document.getElementById('hotelName').value,
+                mapUrl:    document.getElementById('hotelMapUrl').value,
+                platform:  document.getElementById('hotelPlatform').value,
+                bookingId: document.getElementById('hotelBookingId').value,
+                checkIn:   document.getElementById('hotelCheckIn').value,
+                checkOut:  document.getElementById('hotelCheckOut').value
+            };
+            if (editingHotelId) {
+                const idx = appData.info.hotels.findIndex(h => h.id === editingHotelId);
+                appData.info.hotels[idx] = hotel;
+            } else {
+                appData.info.hotels.push(hotel);
+            }
+            saveData(); renderInfo(); closeModal('hotelModal');
+            showSuccessMessage('飯店已保存！');
+        }
 
         // 模態控制
         function openModal(id) {
@@ -3850,6 +3819,32 @@
         let editingPlaceId = null;
 
         // ── 額外景點 CRUD ──
+        function openAddPlaceModal() {
+            editingPlaceId = null;
+            document.getElementById('placeModalTitle').textContent = '📌 新增景點';
+            document.getElementById('placeIcon').value     = '📍';
+            document.getElementById('placeName').value     = '';
+            document.getElementById('placeLocation').value = '';
+            document.getElementById('placeNotes').value    = '';
+            updatePlaceDayOptions();
+            document.getElementById('placeDay').value = currentMapDay === 'all' ? '0' : String(currentMapDay);
+            openModal('placeModal');
+        }
+
+        function editPlace(id) {
+            editingPlaceId = id;
+            const p = appData.extraPlaces.find(p => p.id === id);
+            if (!p) return;
+            document.getElementById('placeModalTitle').textContent = '📌 編輯景點';
+            document.getElementById('placeIcon').value     = p.icon || '📍';
+            document.getElementById('placeName').value     = p.name || '';
+            document.getElementById('placeLocation').value = p.location || '';
+            document.getElementById('placeNotes').value    = p.notes || '';
+            updatePlaceDayOptions();
+            document.getElementById('placeDay').value = String(p.day || 0);
+            openModal('placeModal');
+        }
+
         function updatePlaceDayOptions() {
             const sel = document.getElementById('placeDay');
             sel.innerHTML = '<option value="0">📌 未排程（想去清單）</option>';
@@ -3861,6 +3856,28 @@
                 opt.textContent = `Day ${d} ${dt ? dt.emoji : ''} ${dt ? dt.title : ''}`;
                 sel.appendChild(opt);
             }
+        }
+
+        function savePlace(e) {
+            e.preventDefault();
+            const place = {
+                id: editingPlaceId || generateId(),
+                icon:     document.getElementById('placeIcon').value     || '📍',
+                name:     document.getElementById('placeName').value,
+                location: document.getElementById('placeLocation').value,
+                notes:    document.getElementById('placeNotes').value,
+                day:      parseInt(document.getElementById('placeDay').value) || 0
+            };
+            if (editingPlaceId) {
+                const idx = appData.extraPlaces.findIndex(p => p.id === editingPlaceId);
+                appData.extraPlaces[idx] = place;
+            } else {
+                appData.extraPlaces.push(place);
+            }
+            saveData();
+            renderMap(currentMapDay);
+            closeModal('placeModal');
+            showSuccessMessage('景點已保存！');
         }
 
         function renderMap(filterDay) {
@@ -3968,7 +3985,7 @@
             const isExtra = p._type === 'extra';
             const editBtns = isExtra
                 ? `<div style="display:flex;flex-direction:column;gap:3px;flex-shrink:0;margin-left:6px;">
-                    <button class="btn-sm btn-edit" style="padding:2px 6px;font-size:10px;" onclick="event.preventDefault();event.stopPropagation();openItem('place', ${p.id})">✏️</button>
+                    <button class="btn-sm btn-edit" style="padding:2px 6px;font-size:10px;" onclick="event.preventDefault();event.stopPropagation();editPlace(${p.id})">✏️</button>
                     <button class="btn-sm btn-delete" style="padding:2px 6px;font-size:10px;" onclick="event.preventDefault();event.stopPropagation();deleteItem('place', ${p.id})">🗑️</button>
                   </div>`
                 : '';
