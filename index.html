@@ -2684,9 +2684,6 @@
             if (tabName === 'info') fetchWeather();
         }
 
-        // ── 活動圖片暫存（需在 MODAL_CONFIG 前宣告）──
-        let pendingActivityImages = [];
-
         // ── 實體配置表 ──
         const ENTITY_CONFIG = {
             activity:  { key: 'activities',  label: '活動', path: null,   render: () => renderItinerary() },
@@ -2811,28 +2808,13 @@
             },
         };
 
-        // ── 通用 Modal 狀態管理 ──
-        // 用明確的物件管理編輯狀態，不依賴 window[] 存取
-        const editingState = {
-            editingId:      null,
-            editingHotelId: null,
-            editingPlaceId: null,
-            get(varName) { return this[varName] ?? null; },
-            set(varName, val) { if (varName in this) this[varName] = val; },
-            clear(varName) { if (varName in this) this[varName] = null; },
-        };
-
         // ── 通用開啟 Modal（新增 / 編輯）──
         function openItem(entityType, id = null) {
             const cfg = MODAL_CONFIG[entityType];
             if (!cfg) return console.error('未知 modal 實體:', entityType);
 
-            // 設定編輯狀態
-            editingState.set(cfg.editingVar, id);
-            // 同步舊的全域變數（部分其他程式碼還依賴）
-            if (cfg.editingVar === 'editingId') editingId = id;
-            if (cfg.editingVar === 'editingHotelId') editingHotelId = id;
-            if (cfg.editingVar === 'editingPlaceId') editingPlaceId = id;
+            // 設定 editingVar
+            window[cfg.editingVar] = id;
 
             // 取得資料
             const arr = cfg.dataPath
@@ -2860,9 +2842,6 @@
                 if (el) el.value = currentMapDay === 'all' ? '0' : String(currentMapDay);
             }
 
-            // 後置處理（如拆解 time、載入 transport、圖片）
-            if (cfg.afterOpen) cfg.afterOpen(item);
-
             openModal(cfg.modalId);
         }
 
@@ -2872,11 +2851,10 @@
             const cfg = MODAL_CONFIG[entityType];
             if (!cfg) return console.error('未知 modal 實體:', entityType);
 
-            // 用 currentId 避免與全域 editingId 同名遮蔽造成混亂
-            const currentId = editingState.get(cfg.editingVar);
+            const editingId = window[cfg.editingVar];
 
             // 從欄位收集資料
-            const item = { id: currentId || generateId() };
+            const item = { id: editingId || generateId() };
             Object.entries(cfg.fields).forEach(([elId, fieldCfg]) => {
                 const el = document.getElementById(elId);
                 let val = el ? el.value : fieldCfg.default;
@@ -2886,50 +2864,41 @@
                 item[fieldCfg.key] = val;
             });
 
-            // 儲存前特殊處理（如組裝 time、transport、images）
-            if (cfg.beforeSave) cfg.beforeSave(item);
-
             // 保留特殊欄位（如 completed）
             if (cfg.preserve) {
-                const preserveArr = cfg.dataPath
+                const arr = cfg.dataPath
                     ? appData[cfg.dataPath][cfg.dataKey]
                     : appData[cfg.dataKey];
-                const oldItem = currentId ? (preserveArr || []).find(i => i.id === currentId) : null;
+                const oldItem = editingId ? arr.find(i => i.id === editingId) : null;
                 Object.assign(item, cfg.preserve(oldItem));
             }
 
             // 寫入資料
-            const targetArr = cfg.dataPath
-                ? appData[cfg.dataPath][cfg.dataKey]
-                : appData[cfg.dataKey];
-
-            if (!targetArr) {
-                if (cfg.dataPath) appData[cfg.dataPath][cfg.dataKey] = [];
-                else appData[cfg.dataKey] = [];
-            }
-
             const arr = cfg.dataPath
                 ? appData[cfg.dataPath][cfg.dataKey]
                 : appData[cfg.dataKey];
 
-            if (currentId) {
-                const idx = arr.findIndex(i => i.id === currentId);
-                if (idx > -1) arr[idx] = item;
-                else arr.push(item);
+            if (!arr) {
+                if (cfg.dataPath) appData[cfg.dataPath][cfg.dataKey] = [];
+                else appData[cfg.dataKey] = [];
+            }
+
+            const targetArr = cfg.dataPath
+                ? appData[cfg.dataPath][cfg.dataKey]
+                : appData[cfg.dataKey];
+
+            if (editingId) {
+                const idx = targetArr.findIndex(i => i.id === editingId);
+                if (idx > -1) targetArr[idx] = item;
             } else {
-                arr.push(item);
+                targetArr.push(item);
             }
 
             saveData();
             cfg.render();
-
-            // 清狀態、關 modal
-            editingState.clear(cfg.editingVar);
-            if (cfg.editingVar === 'editingId')      editingId      = null;
-            if (cfg.editingVar === 'editingHotelId') editingHotelId = null;
-            if (cfg.editingVar === 'editingPlaceId') editingPlaceId = null;
             closeModal(cfg.modalId);
             showSuccessMessage(`${ENTITY_CONFIG[entityType]?.label || entityType}已保存！`);
+            window[cfg.editingVar] = null;
         }
 
         // ── 通用 ID 產生器 ──
@@ -3427,6 +3396,7 @@
             return { top: `${m}m`, bot: '' };
         }
         // ── 活動圖片 ──
+        let pendingActivityImages = [];
         let lightboxActivityId = null;
         let lightboxIndex = 0;
         let uploadTargetId = null;
