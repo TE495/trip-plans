@@ -2256,8 +2256,8 @@
             expenses: [],
             checklists: [],
             info: {
-                flightOut:    { time: '', from: '', to: '', duration: '' },
-                flightReturn: { time: '', from: '', to: '', duration: '' },
+                flightOut:    { flightName: '', time: '', arrTime: '', from: '', to: '', duration: '', fromTZ: '', toTZ: '' },
+                flightReturn: { flightName: '', time: '', arrTime: '', from: '', to: '', duration: '', fromTZ: '', toTZ: '' },
                 hotels: []
             }
         };
@@ -2597,6 +2597,14 @@
             } else {
                 if (!appData.info.flightOut)    appData.info.flightOut    = { ...D.info.flightOut };
                 if (!appData.info.flightReturn) appData.info.flightReturn = { ...D.info.flightReturn };
+                // 補齊舊版缺少的 flight 欄位
+                ['flightOut', 'flightReturn'].forEach(k => {
+                    const f = appData.info[k];
+                    if (f.flightName === undefined) f.flightName = '';
+                    if (f.arrTime    === undefined) f.arrTime    = '';
+                    if (f.fromTZ     === undefined) f.fromTZ     = '';
+                    if (f.toTZ       === undefined) f.toTZ       = '';
+                });
                 // 舊版是 hotel（單筆），轉換成 hotels 陣列
                 if (!appData.info.hotels || !Array.isArray(appData.info.hotels)) {
                     if (appData.info.hotel) {
@@ -3654,31 +3662,48 @@
         // 資訊編輯函數
         // ── 航班 ──
         function openFlightModal() {
-            const f = appData.info;
-            document.getElementById('infoFlightOutTime').value     = f.flightOut.time;
-            document.getElementById('infoFlightOutFrom').value     = f.flightOut.from;
-            document.getElementById('infoFlightOutTo').value       = f.flightOut.to;
-            document.getElementById('infoFlightOutDuration').value = f.flightOut.duration;
-            document.getElementById('infoFlightReturnTime').value     = f.flightReturn.time;
-            document.getElementById('infoFlightReturnFrom').value     = f.flightReturn.from;
-            document.getElementById('infoFlightReturnTo').value       = f.flightReturn.to;
-            document.getElementById('infoFlightReturnDuration').value = f.flightReturn.duration;
+            const o = appData.info.flightOut;
+            const r = appData.info.flightReturn;
+            document.getElementById('infoFlightOutName').value       = o.flightName || '';
+            document.getElementById('infoFlightOutTime').value       = o.time       || '';
+            document.getElementById('infoFlightOutArrTime').value    = o.arrTime    || '';
+            document.getElementById('infoFlightOutFrom').value       = o.from       || '';
+            document.getElementById('infoFlightOutTo').value         = o.to         || '';
+            document.getElementById('infoFlightOutDuration').value   = o.duration   || '';
+            document.getElementById('infoFlightOutFromTZ').value     = o.fromTZ     || '';
+            document.getElementById('infoFlightOutToTZ').value       = o.toTZ       || '';
+            document.getElementById('infoFlightReturnName').value    = r.flightName || '';
+            document.getElementById('infoFlightReturnTime').value    = r.time       || '';
+            document.getElementById('infoFlightReturnArrTime').value = r.arrTime    || '';
+            document.getElementById('infoFlightReturnFrom').value    = r.from       || '';
+            document.getElementById('infoFlightReturnTo').value      = r.to         || '';
+            document.getElementById('infoFlightReturnDuration').value= r.duration   || '';
+            document.getElementById('infoFlightReturnFromTZ').value  = r.fromTZ     || '';
+            document.getElementById('infoFlightReturnToTZ').value    = r.toTZ       || '';
             openModal('flightModal');
         }
 
         function saveFlightData(e) {
             e.preventDefault();
             appData.info.flightOut = {
-                time:     document.getElementById('infoFlightOutTime').value,
-                from:     document.getElementById('infoFlightOutFrom').value,
-                to:       document.getElementById('infoFlightOutTo').value,
-                duration: document.getElementById('infoFlightOutDuration').value
+                flightName: document.getElementById('infoFlightOutName').value,
+                time:       document.getElementById('infoFlightOutTime').value,
+                arrTime:    document.getElementById('infoFlightOutArrTime').value,
+                from:       document.getElementById('infoFlightOutFrom').value,
+                to:         document.getElementById('infoFlightOutTo').value,
+                duration:   document.getElementById('infoFlightOutDuration').value,
+                fromTZ:     document.getElementById('infoFlightOutFromTZ').value,
+                toTZ:       document.getElementById('infoFlightOutToTZ').value,
             };
             appData.info.flightReturn = {
-                time:     document.getElementById('infoFlightReturnTime').value,
-                from:     document.getElementById('infoFlightReturnFrom').value,
-                to:       document.getElementById('infoFlightReturnTo').value,
-                duration: document.getElementById('infoFlightReturnDuration').value
+                flightName: document.getElementById('infoFlightReturnName').value,
+                time:       document.getElementById('infoFlightReturnTime').value,
+                arrTime:    document.getElementById('infoFlightReturnArrTime').value,
+                from:       document.getElementById('infoFlightReturnFrom').value,
+                to:         document.getElementById('infoFlightReturnTo').value,
+                duration:   document.getElementById('infoFlightReturnDuration').value,
+                fromTZ:     document.getElementById('infoFlightReturnFromTZ').value,
+                toTZ:       document.getElementById('infoFlightReturnToTZ').value,
             };
             saveData(); renderInfo(); closeModal('flightModal');
             showSuccessMessage('航班資訊已保存！');
