@@ -2153,8 +2153,16 @@
             <form onsubmit="saveFlightData(event)">
                 <h3 style="margin: 4px 0 12px; font-size: 13px; color: #666;">🛫 去程</h3>
                 <div class="form-group">
+                    <label>航班名稱</label>
+                    <input type="text" id="infoFlightOutName" placeholder="例：虎航 IT728">
+                </div>
+                <div class="form-group">
                     <label>起飛時間（出發地時間）</label>
                     <input type="text" id="infoFlightOutTime" placeholder="16:15">
+                </div>
+                <div class="form-group">
+                    <label>到達時間（目的地時間）</label>
+                    <input type="text" id="infoFlightOutArrTime" placeholder="18:40">
                 </div>
                 <div class="form-group">
                     <label>出發地</label>
@@ -2168,10 +2176,27 @@
                     <label>實際飛行時間</label>
                     <input type="text" id="infoFlightOutDuration" placeholder="1h 25m">
                 </div>
+                <div class="form-group">
+                    <label>出發時區</label>
+                    <input type="text" id="infoFlightOutFromTZ" placeholder="台灣時間 (UTC+8)">
+                </div>
+                <div class="form-group">
+                    <label>到達時區</label>
+                    <input type="text" id="infoFlightOutToTZ" placeholder="日本時間 (UTC+9)">
+                </div>
+
                 <h3 style="margin: 16px 0 12px; font-size: 13px; color: #666;">🛬 回程</h3>
+                <div class="form-group">
+                    <label>航班名稱</label>
+                    <input type="text" id="infoFlightReturnName" placeholder="例：虎航 IT728">
+                </div>
                 <div class="form-group">
                     <label>起飛時間（出發地時間）</label>
                     <input type="text" id="infoFlightReturnTime" placeholder="10:30">
+                </div>
+                <div class="form-group">
+                    <label>到達時間（目的地時間）</label>
+                    <input type="text" id="infoFlightReturnArrTime" placeholder="11:20">
                 </div>
                 <div class="form-group">
                     <label>出發地</label>
@@ -2185,6 +2210,15 @@
                     <label>實際飛行時間</label>
                     <input type="text" id="infoFlightReturnDuration" placeholder="1h 50m">
                 </div>
+                <div class="form-group">
+                    <label>出發時區</label>
+                    <input type="text" id="infoFlightReturnFromTZ" placeholder="日本時間 (UTC+9)">
+                </div>
+                <div class="form-group">
+                    <label>到達時區</label>
+                    <input type="text" id="infoFlightReturnToTZ" placeholder="台灣時間 (UTC+8)">
+                </div>
+
                 <div style="display:flex;gap:8px;margin-top:16px;">
                     <button type="submit" class="btn-save">💾 保存</button>
                     <button type="button" class="btn-cancel" onclick="closeModal('flightModal')">取消</button>
