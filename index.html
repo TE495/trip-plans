@@ -4308,7 +4308,7 @@
         if (!currentRoom) { showRoomModal(); return; }
         const t = (typeof appData !== 'undefined' && appData.trip) || {};
         const tripName = `${t.emoji || '🌏'} ${t.title || '我的旅行'}`;
-        const text = `${tripName} 共同編輯\n房間碼：${currentRoom}\n\n開啟連結後點「換房間」→ 輸入房間碼即可加入！\nhttps://TE495.github.io/okinawa-trip/`;
+        const text = `${tripName} 共同編輯\n房間碼：${currentRoom}\n\n開啟連結後點「換房間」→ 輸入房間碼即可加入！\nhttps://te495.github.io/trip-plans/`;
 
         // 優先複製到剪貼簿
         if (navigator.clipboard && navigator.clipboard.writeText) {
