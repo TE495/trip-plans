@@ -2283,7 +2283,7 @@
         }
 
         // 深層複製 DEFAULT_DATA 的工具函數
-        const cloneDefault = () => cloneDefault();
+        function cloneDefault() { return JSON.parse(JSON.stringify(DEFAULT_DATA)); }
 
         // 有房間碼才讀 localStorage 資料；沒房間碼用空白範本（等使用者選擇加入或建立）
         let appData;
