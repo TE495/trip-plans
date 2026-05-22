@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="theme-color" content="#00A8A8">
     <!-- 版本號：每次上傳 GitHub 時更新，控制快取更新 -->
-    <meta name="version" content="20250521-14">
+    <meta name="version" content="20250521-11">
     <title>旅遊行程規劃</title>
 
     <!-- Open Graph：控制 LINE / FB / iMessage 連結預覽 -->
@@ -1757,7 +1757,7 @@
         <div id="itinerary" class="tab-content active">
             <div class="toolbar">
                 <div class="toolbar-left">
-                    <button class="btn-primary" onclick="openItem('activity')">➕ 新增活動</button>
+                    <button class="btn-primary" onclick="openAddActivityModal()">➕ 新增活動</button>
                 </div>
                 <div class="toolbar-right">
                     <button class="btn-secondary" onclick="exportData()">📤 匯出</button>
@@ -1847,7 +1847,7 @@
                 <h2 id="activityModalTitle">新增活動</h2>
                 <button class="close-btn" onclick="closeModal('activityModal')">✕</button>
             </div>
-            <form onsubmit="saveItem('activity', event)">
+            <form onsubmit="saveActivity(event)">
                 <div class="form-group">
                     <label>選擇日期</label>
                     <select id="activityDay" style="width: 100%; padding: 10px; border: 2px solid var(--border); border-radius: 6px;">
@@ -2660,53 +2660,6 @@
 
         // ── Modal 配置表 ──
         const MODAL_CONFIG = {
-            activity: {
-                modalId:    'activityModal',
-                titleEl:    'activityModalTitle',
-                addTitle:   '新增活動',
-                editTitle:  '編輯活動',
-                editingVar: 'editingId',
-                dataKey:    'activities',
-                fields: {
-                    activityDay:        { key: 'day',        default: 1  },
-                    activityCheckTime:  { key: 'checkTime',  default: '' },
-                    activityCheckLabel: { key: 'checkLabel', default: '' },
-                    activityIcon:       { key: 'icon',       default: '' },
-                    activityTitle:      { key: 'title',      default: '' },
-                    activityLocation:   { key: 'location',   default: '' },
-                    activityNotes:      { key: 'notes',      default: '' },
-                },
-                transform: { day: v => parseInt(v) || 1 },
-                beforeOpen: () => updateDayOptions(),
-                afterOpen: (item) => {
-                    // time 拆解成三個欄位
-                    const { start, end, note } = parseTimeString(item ? item.time || '' : '');
-                    document.getElementById('activityTimeStart').value = start;
-                    document.getElementById('activityTimeEnd').value   = end;
-                    document.getElementById('activityTimeNote').value  = note;
-                    // transport（巢狀物件，無法用 fields 配置）
-                    document.getElementById('activityTransportType').value     = item?.transport?.type     || '';
-                    document.getElementById('activityTransportDuration').value = item?.transport?.duration || '';
-                    // 圖片預覽
-                    pendingActivityImages = item ? [...(item.images || [])] : [];
-                    renderModalImgPreview();
-                    // 新增時帶入目前篩選的天
-                    if (!item) {
-                        const d = (typeof currentItineraryDay !== 'undefined' && currentItineraryDay !== 'all')
-                            ? currentItineraryDay : 1;
-                        document.getElementById('activityDay').value = d;
-                    }
-                },
-                beforeSave: (item) => {
-                    item.time   = buildTimeString();
-                    item.images = [...pendingActivityImages];
-                    item.transport = {
-                        type:     document.getElementById('activityTransportType').value     || '',
-                        duration: document.getElementById('activityTransportDuration').value || '',
-                    };
-                },
-                render: () => renderItinerary(),
-            },
             expense: {
                 modalId:    'expenseModal',
                 titleEl:    'expenseModalTitle',
@@ -2811,9 +2764,6 @@
                 if (el) el.value = currentMapDay === 'all' ? '0' : String(currentMapDay);
             }
 
-            // 後置處理（如拆解 time 欄位、載入圖片）
-            if (cfg.afterOpen) cfg.afterOpen(item);
-
             openModal(cfg.modalId);
         }
 
@@ -2835,9 +2785,6 @@
                 }
                 item[fieldCfg.key] = val;
             });
-
-            // 儲存前特殊處理（如組裝 time、transport、images）
-            if (cfg.beforeSave) cfg.beforeSave(item);
 
             // 保留特殊欄位（如 completed）
             if (cfg.preserve) {
@@ -3042,7 +2989,7 @@
                                         <div class="activity-thumb-add" onclick="triggerActivityImgUpload(${a.id})" title="新增圖片">📎</div>
                                     </div>`}
                                     <div class="activity-buttons">
-                                        <button class="btn-sm btn-edit"   onclick="openItem('activity', ${a.id})">✏️ 編輯</button>
+                                        <button class="btn-sm btn-edit"   onclick="editActivity(${a.id})">✏️ 編輯</button>
                                         <button class="btn-sm btn-delete" onclick="deleteItem('activity', ${a.id})">🗑️ 刪除</button>
                                     </div>
                                 </div>
@@ -3327,7 +3274,54 @@
             container.innerHTML = html;
         }
 
-        // 活動編輯函數（由 MODAL_CONFIG activity 通用化處理）
+        // 活動編輯函數
+        function openAddActivityModal() {
+            editingId = null;
+            updateDayOptions();
+            document.getElementById('activityModalTitle').textContent = '新增活動';
+            // 自動帶入目前篩選的天（不是 all 才帶入）
+            const defaultDay = (typeof currentItineraryDay !== 'undefined' && currentItineraryDay !== 'all')
+                ? currentItineraryDay : 1;
+            document.getElementById('activityDay').value = defaultDay;
+            document.getElementById('activityCheckTime').value  = '';
+            document.getElementById('activityCheckLabel').value = '';
+            document.getElementById('activityIcon').value = '';
+            document.getElementById('activityTitle').value = '';
+            document.getElementById('activityTimeStart').value = '';
+            document.getElementById('activityTimeEnd').value = '';
+            document.getElementById('activityTimeNote').value = '';
+            document.getElementById('activityLocation').value = '';
+            document.getElementById('activityNotes').value = '';
+            document.getElementById('activityTransportType').value = '';
+            document.getElementById('activityTransportDuration').value = '';
+            pendingActivityImages = [];
+            renderModalImgPreview();
+            openModal('activityModal');
+        }
+
+        function editActivity(id) {
+            editingId = id;
+            updateDayOptions();
+            const activity = appData.activities.find(a => a.id === id);
+            document.getElementById('activityModalTitle').textContent = '編輯活動';
+            document.getElementById('activityDay').value = activity.day;
+            document.getElementById('activityCheckTime').value  = activity.checkTime  || '';
+            document.getElementById('activityCheckLabel').value = activity.checkLabel || '';
+            document.getElementById('activityIcon').value = activity.icon;
+            document.getElementById('activityTitle').value = activity.title;
+            const { start, end, note } = parseTimeString(activity.time || '');
+            document.getElementById('activityTimeStart').value = start;
+            document.getElementById('activityTimeEnd').value = end;
+            document.getElementById('activityTimeNote').value = note;
+            document.getElementById('activityLocation').value = activity.location;
+            document.getElementById('activityNotes').value = activity.notes || '';
+            document.getElementById('activityTransportType').value = (activity.transport && activity.transport.type) || '';
+            document.getElementById('activityTransportDuration').value = (activity.transport && activity.transport.duration) || '';
+            pendingActivityImages = activity.images ? [...activity.images] : [];
+            renderModalImgPreview();
+            openModal('activityModal');
+        }
+
         // 解析舊格式 time 字串 → { start, end, note }
         function parseTimeString(str) {
             if (!str) return { start: '', end: '', note: '' };
@@ -3349,6 +3343,38 @@
             if (start && end) t += ` - ${end}`;
             if (note) t += (t ? ' | ' : '') + note;
             return t;
+        }
+
+        function saveActivity(e) {
+            e.preventDefault();
+            const activity = {
+                id: editingId || generateId(),
+                day: parseInt(document.getElementById('activityDay').value),
+                checkTime:  document.getElementById('activityCheckTime').value,
+                checkLabel: document.getElementById('activityCheckLabel').value.trim(),
+                icon: document.getElementById('activityIcon').value,
+                title: document.getElementById('activityTitle').value,
+                time: buildTimeString(),
+                location: document.getElementById('activityLocation').value,
+                notes: document.getElementById('activityNotes').value,
+                images: [...pendingActivityImages],
+                transport: {
+                    type: document.getElementById('activityTransportType').value,
+                    duration: document.getElementById('activityTransportDuration').value
+                }
+            };
+
+            if (editingId) {
+                const index = appData.activities.findIndex(a => a.id === editingId);
+                appData.activities[index] = activity;
+            } else {
+                appData.activities.push(activity);
+            }
+
+            saveData();
+            renderItinerary();
+            closeModal('activityModal');
+            showSuccessMessage('活動已保存！');
         }
 
         // 從 time 字串計算停留時間（分鐘），無法解析回傳 null
@@ -3397,8 +3423,8 @@
             renderModalImgPreview();
         }
 
-        // ── 圖片壓縮（上傳前自動縮小到最大 640px，品質 0.65）──
-        function compressImage(file, maxSize = 640, quality = 0.65) {
+        // ── 圖片壓縮（上傳前自動縮小到最大 1024px，品質 0.82）──
+        function compressImage(file, maxSize = 1024, quality = 0.82) {
             return new Promise(resolve => {
                 const reader = new FileReader();
                 reader.onload = ev => {
@@ -3809,7 +3835,7 @@
         // ── 地圖頁 ──
 
         function openAddActivityForDay(day) {
-            openItem('activity');
+            openAddActivityModal();
             document.getElementById('activityDay').value = day;
         }
 
