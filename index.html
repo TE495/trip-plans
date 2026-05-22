@@ -1757,7 +1757,7 @@
         <div id="itinerary" class="tab-content active">
             <div class="toolbar">
                 <div class="toolbar-left">
-                    <button class="btn-primary" onclick="openItem('activity')">➕ 新增活動</button>
+                    <button class="btn-primary" onclick="openAddActivityModal()">➕ 新增活動</button>
                 </div>
                 <div class="toolbar-right">
                     <button class="btn-secondary" onclick="exportData()">📤 匯出</button>
@@ -1847,7 +1847,7 @@
                 <h2 id="activityModalTitle">新增活動</h2>
                 <button class="close-btn" onclick="closeModal('activityModal')">✕</button>
             </div>
-            <form onsubmit="saveItem('activity', event)">
+            <form onsubmit="saveActivity(event)">
                 <div class="form-group">
                     <label>選擇日期</label>
                     <select id="activityDay" style="width: 100%; padding: 10px; border: 2px solid var(--border); border-radius: 6px;">
@@ -2282,17 +2282,16 @@
             }
         }
 
-        // 深層複製 DEFAULT_DATA 的工具函數
-        function cloneDefault() { return JSON.parse(JSON.stringify(DEFAULT_DATA)); }
-
         // 有房間碼才讀 localStorage 資料；沒房間碼用空白範本（等使用者選擇加入或建立）
         let appData;
         try {
             const hasRoom = localStorage.getItem('okinawaRoom');
-            appData = hasRoom ? loadStorage('okinawaData', cloneDefault()) : cloneDefault();
+            appData = hasRoom
+                ? (loadStorage('okinawaData', JSON.parse(JSON.stringify(DEFAULT_DATA))))
+                : JSON.parse(JSON.stringify(DEFAULT_DATA));
         } catch (err) {
             console.error('appData 初始化失敗:', err);
-            appData = cloneDefault();
+            appData = JSON.parse(JSON.stringify(DEFAULT_DATA));
         }
         let editingId = null;
         let editingDayId = null;
@@ -2320,6 +2319,14 @@
         }
 
         // 取得某天是否為今天
+        function isDayToday(day) {
+            const t = appData.trip || {};
+            if (!t.startDate) return false;
+            const d = new Date(t.startDate);
+            d.setDate(d.getDate() + day - 1);
+            return d.toISOString().slice(0, 10) === new Date().toISOString().slice(0, 10);
+        }
+
         // 更新 activity modal 的 Day 選項
         function updateDayOptions() {
             const numDays = getTripDays();
@@ -2653,49 +2660,6 @@
 
         // ── Modal 配置表 ──
         const MODAL_CONFIG = {
-            activity: {
-                modalId:    'activityModal',
-                titleEl:    'activityModalTitle',
-                addTitle:   '新增活動',
-                editTitle:  '編輯活動',
-                editingVar: 'editingId',
-                dataKey:    'activities',
-                fields: {
-                    activityDay:        { key: 'day',        default: 1  },
-                    activityCheckTime:  { key: 'checkTime',  default: '' },
-                    activityCheckLabel: { key: 'checkLabel', default: '' },
-                    activityIcon:       { key: 'icon',       default: '' },
-                    activityTitle:      { key: 'title',      default: '' },
-                    activityLocation:   { key: 'location',   default: '' },
-                    activityNotes:      { key: 'notes',      default: '' },
-                },
-                transform:  { day: v => parseInt(v) || 1 },
-                beforeOpen: () => updateDayOptions(),
-                afterOpen: (item) => {
-                    const { start, end, note } = parseTimeString(item?.time || '');
-                    document.getElementById('activityTimeStart').value         = start;
-                    document.getElementById('activityTimeEnd').value           = end;
-                    document.getElementById('activityTimeNote').value          = note;
-                    document.getElementById('activityTransportType').value     = item?.transport?.type     || '';
-                    document.getElementById('activityTransportDuration').value = item?.transport?.duration || '';
-                    pendingActivityImages = item ? [...(item.images || [])] : [];
-                    renderModalImgPreview();
-                    if (!item) {
-                        const d = (typeof currentItineraryDay !== 'undefined' && currentItineraryDay !== 'all')
-                            ? currentItineraryDay : 1;
-                        document.getElementById('activityDay').value = d;
-                    }
-                },
-                beforeSave: (item) => {
-                    item.time      = buildTimeString();
-                    item.images    = [...pendingActivityImages];
-                    item.transport = {
-                        type:     document.getElementById('activityTransportType').value     || '',
-                        duration: document.getElementById('activityTransportDuration').value || '',
-                    };
-                },
-                render: () => renderItinerary(),
-            },
             expense: {
                 modalId:    'expenseModal',
                 titleEl:    'expenseModalTitle',
@@ -3025,7 +2989,7 @@
                                         <div class="activity-thumb-add" onclick="triggerActivityImgUpload(${a.id})" title="新增圖片">📎</div>
                                     </div>`}
                                     <div class="activity-buttons">
-                                        <button class="btn-sm btn-edit"   onclick="openItem('activity', ${a.id})">✏️ 編輯</button>
+                                        <button class="btn-sm btn-edit"   onclick="editActivity(${a.id})">✏️ 編輯</button>
                                         <button class="btn-sm btn-delete" onclick="deleteItem('activity', ${a.id})">🗑️ 刪除</button>
                                     </div>
                                 </div>
@@ -3174,10 +3138,6 @@
 
         // 渲染清單
         function renderChecklist() {
-            try { _renderChecklist(); }
-            catch(e) { console.error('renderChecklist error:', e); showRenderError('清單'); }
-        }
-        function _renderChecklist() {
             const container = document.getElementById('checklist-list');
             const categories = {};
 
@@ -3223,47 +3183,55 @@
                     <div style="color:rgba(255,255,255,0.7);font-size:12px;width:100%;text-align:center;">⛅ 載入天氣中…</div>
                 </div>
                 <h3 style="margin-bottom: 12px; font-size: 14px; font-weight: 700;">✈️ 飛行資訊</h3>
-
-                <div class="flight-info" style="background: linear-gradient(135deg, #006B7D 0%, #00A8A8 100%); color: white; padding: 16px; border-radius: 10px; margin-bottom: 16px;">
-                    <div style="font-size: 12px; margin-bottom: 12px; opacity: 0.9;">🛫 去程${info.flightOut.flightName ? '・' + info.flightOut.flightName : ''}</div>
+                
+                <div class="flight-info" style="background: linear-gradient(135deg, #006B7D 0%, #00A8A8 100%); color: white; padding: 16px; border-radius: 10px; margin-bottom: 8px;">
+                    <div style="font-size: 12px; margin-bottom: 12px; opacity: 0.9;">🛫 去程・虎航 IT728</div>
                     <div style="display: flex; justify-content: space-between; align-items: center;">
                         <div>
-                            <div style="font-size: 20px; font-weight: 800;">${info.flightOut.time || '--:--'}</div>
-                            <div style="font-size: 11px; opacity: 0.8;">${info.flightOut.from || ''}</div>
-                            <div style="font-size: 10px; opacity: 0.6;">${info.flightOut.fromTZ || ''}</div>
+                            <div style="font-size: 20px; font-weight: 800;">${info.flightOut.time}</div>
+                            <div style="font-size: 11px; opacity: 0.8;">${info.flightOut.from}</div>
+                            <div style="font-size: 10px; opacity: 0.6;">台灣時間 (UTC+8)</div>
                         </div>
                         <div style="text-align: center;">
                             <div style="font-size: 11px; opacity: 0.85; margin-bottom: 2px;">實際飛行</div>
-                            <div style="font-size: 15px; font-weight: 800;">${info.flightOut.duration || ''}</div>
+                            <div style="font-size: 15px; font-weight: 800;">${info.flightOut.duration}</div>
                             <div style="font-size: 18px; margin: 2px 0;">✈️</div>
+                            <div style="font-size: 10px; opacity: 0.65;">日本時間+1hr</div>
                         </div>
                         <div style="text-align: right;">
-                            <div style="font-size: 20px; font-weight: 800;">${info.flightOut.arrTime || '--:--'}</div>
-                            <div style="font-size: 11px; opacity: 0.8;">${info.flightOut.to || ''}</div>
-                            <div style="font-size: 10px; opacity: 0.6;">${info.flightOut.toTZ || ''}</div>
+                            <div style="font-size: 20px; font-weight: 800;">18:40</div>
+                            <div style="font-size: 11px; opacity: 0.8;">${info.flightOut.to}</div>
+                            <div style="font-size: 10px; opacity: 0.6;">日本時間 (UTC+9)</div>
                         </div>
                     </div>
                 </div>
+                <div style="font-size: 11px; color: #888; margin-bottom: 16px; padding: 0 4px;">
+                    💡 台灣與日本時差 1 小時，落地時間以日本當地時間顯示
+                </div>
 
-                <div class="flight-info" style="background: linear-gradient(135deg, #00A8A8 0%, #20C997 100%); color: white; padding: 16px; border-radius: 10px; margin-bottom: 16px;">
-                    <div style="font-size: 12px; margin-bottom: 12px; opacity: 0.9;">🛬 回程${info.flightReturn.flightName ? '・' + info.flightReturn.flightName : ''}</div>
+                <div class="flight-info" style="background: linear-gradient(135deg, #00A8A8 0%, #20C997 100%); color: white; padding: 16px; border-radius: 10px; margin-bottom: 8px;">
+                    <div style="font-size: 12px; margin-bottom: 12px; opacity: 0.9;">🛬 回程・虎航 IT728</div>
                     <div style="display: flex; justify-content: space-between; align-items: center;">
                         <div>
-                            <div style="font-size: 20px; font-weight: 800;">${info.flightReturn.time || '--:--'}</div>
-                            <div style="font-size: 11px; opacity: 0.8;">${info.flightReturn.from || ''}</div>
-                            <div style="font-size: 10px; opacity: 0.6;">${info.flightReturn.fromTZ || ''}</div>
+                            <div style="font-size: 20px; font-weight: 800;">${info.flightReturn.time}</div>
+                            <div style="font-size: 11px; opacity: 0.8;">${info.flightReturn.from}</div>
+                            <div style="font-size: 10px; opacity: 0.6;">日本時間 (UTC+9)</div>
                         </div>
                         <div style="text-align: center;">
                             <div style="font-size: 11px; opacity: 0.85; margin-bottom: 2px;">實際飛行</div>
-                            <div style="font-size: 15px; font-weight: 800;">${info.flightReturn.duration || ''}</div>
+                            <div style="font-size: 15px; font-weight: 800;">${info.flightReturn.duration}</div>
                             <div style="font-size: 18px; margin: 2px 0;">✈️</div>
+                            <div style="font-size: 10px; opacity: 0.65;">台灣時間-1hr</div>
                         </div>
                         <div style="text-align: right;">
-                            <div style="font-size: 20px; font-weight: 800;">${info.flightReturn.arrTime || '--:--'}</div>
-                            <div style="font-size: 11px; opacity: 0.8;">${info.flightReturn.to || ''}</div>
-                            <div style="font-size: 10px; opacity: 0.6;">${info.flightReturn.toTZ || ''}</div>
+                            <div style="font-size: 20px; font-weight: 800;">11:20</div>
+                            <div style="font-size: 11px; opacity: 0.8;">${info.flightReturn.to}</div>
+                            <div style="font-size: 10px; opacity: 0.6;">台灣時間 (UTC+8)</div>
                         </div>
                     </div>
+                </div>
+                <div style="font-size: 11px; color: #888; margin-bottom: 16px; padding: 0 4px;">
+                    💡 回程落地高雄 11:20（台灣時間），飛行約 1h 50m
                 </div>
 
                 <h3 style="margin-top: 4px; margin-bottom: 12px; font-size: 14px; font-weight: 700;">🏨 住宿資訊</h3>
@@ -3306,6 +3274,54 @@
             container.innerHTML = html;
         }
 
+        // 活動編輯函數
+        function openAddActivityModal() {
+            editingId = null;
+            updateDayOptions();
+            document.getElementById('activityModalTitle').textContent = '新增活動';
+            // 自動帶入目前篩選的天（不是 all 才帶入）
+            const defaultDay = (typeof currentItineraryDay !== 'undefined' && currentItineraryDay !== 'all')
+                ? currentItineraryDay : 1;
+            document.getElementById('activityDay').value = defaultDay;
+            document.getElementById('activityCheckTime').value  = '';
+            document.getElementById('activityCheckLabel').value = '';
+            document.getElementById('activityIcon').value = '';
+            document.getElementById('activityTitle').value = '';
+            document.getElementById('activityTimeStart').value = '';
+            document.getElementById('activityTimeEnd').value = '';
+            document.getElementById('activityTimeNote').value = '';
+            document.getElementById('activityLocation').value = '';
+            document.getElementById('activityNotes').value = '';
+            document.getElementById('activityTransportType').value = '';
+            document.getElementById('activityTransportDuration').value = '';
+            pendingActivityImages = [];
+            renderModalImgPreview();
+            openModal('activityModal');
+        }
+
+        function editActivity(id) {
+            editingId = id;
+            updateDayOptions();
+            const activity = appData.activities.find(a => a.id === id);
+            document.getElementById('activityModalTitle').textContent = '編輯活動';
+            document.getElementById('activityDay').value = activity.day;
+            document.getElementById('activityCheckTime').value  = activity.checkTime  || '';
+            document.getElementById('activityCheckLabel').value = activity.checkLabel || '';
+            document.getElementById('activityIcon').value = activity.icon;
+            document.getElementById('activityTitle').value = activity.title;
+            const { start, end, note } = parseTimeString(activity.time || '');
+            document.getElementById('activityTimeStart').value = start;
+            document.getElementById('activityTimeEnd').value = end;
+            document.getElementById('activityTimeNote').value = note;
+            document.getElementById('activityLocation').value = activity.location;
+            document.getElementById('activityNotes').value = activity.notes || '';
+            document.getElementById('activityTransportType').value = (activity.transport && activity.transport.type) || '';
+            document.getElementById('activityTransportDuration').value = (activity.transport && activity.transport.duration) || '';
+            pendingActivityImages = activity.images ? [...activity.images] : [];
+            renderModalImgPreview();
+            openModal('activityModal');
+        }
+
         // 解析舊格式 time 字串 → { start, end, note }
         function parseTimeString(str) {
             if (!str) return { start: '', end: '', note: '' };
@@ -3327,6 +3343,38 @@
             if (start && end) t += ` - ${end}`;
             if (note) t += (t ? ' | ' : '') + note;
             return t;
+        }
+
+        function saveActivity(e) {
+            e.preventDefault();
+            const activity = {
+                id: editingId || generateId(),
+                day: parseInt(document.getElementById('activityDay').value),
+                checkTime:  document.getElementById('activityCheckTime').value,
+                checkLabel: document.getElementById('activityCheckLabel').value.trim(),
+                icon: document.getElementById('activityIcon').value,
+                title: document.getElementById('activityTitle').value,
+                time: buildTimeString(),
+                location: document.getElementById('activityLocation').value,
+                notes: document.getElementById('activityNotes').value,
+                images: [...pendingActivityImages],
+                transport: {
+                    type: document.getElementById('activityTransportType').value,
+                    duration: document.getElementById('activityTransportDuration').value
+                }
+            };
+
+            if (editingId) {
+                const index = appData.activities.findIndex(a => a.id === editingId);
+                appData.activities[index] = activity;
+            } else {
+                appData.activities.push(activity);
+            }
+
+            saveData();
+            renderItinerary();
+            closeModal('activityModal');
+            showSuccessMessage('活動已保存！');
         }
 
         // 從 time 字串計算停留時間（分鐘），無法解析回傳 null
@@ -3748,7 +3796,7 @@
         // 數據重設
         function resetData() {
             if (confirm('確定要重設所有數據嗎？此操作無法撤銷。')) {
-                appData = cloneDefault();
+                appData = JSON.parse(JSON.stringify(DEFAULT_DATA));
                 saveData();
                 init();
                 showSuccessMessage('已重設為預設值！');
@@ -3787,7 +3835,7 @@
         // ── 地圖頁 ──
 
         function openAddActivityForDay(day) {
-            openItem('activity');
+            openAddActivityModal();
             document.getElementById('activityDay').value = day;
         }
 
@@ -4260,7 +4308,7 @@
         if (!currentRoom) { showRoomModal(); return; }
         const t = (typeof appData !== 'undefined' && appData.trip) || {};
         const tripName = `${t.emoji || '🌏'} ${t.title || '我的旅行'}`;
-        const text = `${tripName} 共同編輯\n房間碼：${currentRoom}\n\n開啟連結後點「換房間」→ 輸入房間碼即可加入！\nhttps://te495.github.io/trip-plans/`;
+        const text = `${tripName} 共同編輯\n房間碼：${currentRoom}\n\n開啟連結後點「換房間」→ 輸入房間碼即可加入！\nhttps://TE495.github.io/okinawa-trip/`;
 
         // 優先複製到剪貼簿
         if (navigator.clipboard && navigator.clipboard.writeText) {
@@ -4323,7 +4371,7 @@
 
     function welcomeNew() {
         // 直接用乾淨的 DEFAULT_DATA（已是空白範本）
-        appData = cloneDefault();
+        appData = JSON.parse(JSON.stringify(DEFAULT_DATA));
         hideWelcome();
         init();
         setMode('edit');
