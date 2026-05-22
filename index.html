@@ -2872,11 +2872,11 @@
             const cfg = MODAL_CONFIG[entityType];
             if (!cfg) return console.error('未知 modal 實體:', entityType);
 
-            // 從 editingState 讀取（比 window[] 可靠）
-            const editingId = editingState.get(cfg.editingVar);
+            // 用 currentId 避免與全域 editingId 同名遮蔽造成混亂
+            const currentId = editingState.get(cfg.editingVar);
 
             // 從欄位收集資料
-            const item = { id: editingId || generateId() };
+            const item = { id: currentId || generateId() };
             Object.entries(cfg.fields).forEach(([elId, fieldCfg]) => {
                 const el = document.getElementById(elId);
                 let val = el ? el.value : fieldCfg.default;
@@ -2891,10 +2891,10 @@
 
             // 保留特殊欄位（如 completed）
             if (cfg.preserve) {
-                const arr = cfg.dataPath
+                const preserveArr = cfg.dataPath
                     ? appData[cfg.dataPath][cfg.dataKey]
                     : appData[cfg.dataKey];
-                const oldItem = editingId ? arr.find(i => i.id === editingId) : null;
+                const oldItem = currentId ? (preserveArr || []).find(i => i.id === currentId) : null;
                 Object.assign(item, cfg.preserve(oldItem));
             }
 
@@ -2908,19 +2908,24 @@
                 else appData[cfg.dataKey] = [];
             }
 
-            if (editingId) {
-                const idx = (targetArr || []).findIndex(i => i.id === editingId);
-                if (idx > -1) targetArr[idx] = item;
-                else (targetArr || []).push(item);
+            const arr = cfg.dataPath
+                ? appData[cfg.dataPath][cfg.dataKey]
+                : appData[cfg.dataKey];
+
+            if (currentId) {
+                const idx = arr.findIndex(i => i.id === currentId);
+                if (idx > -1) arr[idx] = item;
+                else arr.push(item);
             } else {
-                (targetArr || []).push(item);
+                arr.push(item);
             }
 
             saveData();
             cfg.render();
-            // 先清狀態再關 modal，避免 closeModal 的清除邏輯干擾
+
+            // 清狀態、關 modal
             editingState.clear(cfg.editingVar);
-            if (cfg.editingVar === 'editingId') editingId = null;
+            if (cfg.editingVar === 'editingId')      editingId      = null;
             if (cfg.editingVar === 'editingHotelId') editingHotelId = null;
             if (cfg.editingVar === 'editingPlaceId') editingPlaceId = null;
             closeModal(cfg.modalId);
