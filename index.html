@@ -1966,6 +1966,7 @@
                         <option value="準備">行前準備</option>
                         <option value="打包">打包清單</option>
                         <option value="確認">行程確認</option>
+                        <option value="代購">代購清單</option>
                     </select>
                 </div>
                 <div class="form-group">
@@ -3262,7 +3263,7 @@
             });
 
             let html = '';
-            const categoryEmojis = { '準備': '✈️', '打包': '🎒', '確認': '📱' };
+            const categoryEmojis = { '準備': '✈️', '打包': '🎒', '確認': '📱', '代購': '🛍️' };
 
             for (const [category, items] of Object.entries(categories)) {
                 html += `<h3 style="margin-top: 16px; margin-bottom: 12px; font-size: 14px; font-weight: 700;">${categoryEmojis[category]} 行前${category}</h3>`;
