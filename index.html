@@ -2664,6 +2664,13 @@
             if (!appData.bannerDataUrl) appData.bannerDataUrl = '';
             if (!appData.bannerUrl)     appData.bannerUrl     = '';
             if (!appData.bannerPosition) appData.bannerPosition = { x: 50, y: 50 };
+
+            // 舊版 checklist category 名稱遷移
+            if (Array.isArray(appData.checklists)) {
+                appData.checklists.forEach(item => {
+                    if (item.category === '代購') item.category = '待購';
+                });
+            }
         }
 
         function init() {
@@ -3263,8 +3270,8 @@
             });
 
             let html = '';
-            const categoryEmojis = { '準備': '✈️', '打包': '🎒', '確認': '📱', '待購': '🛍️' };
-            const categoryLabels = { '準備': '行前準備', '打包': '行前打包', '確認': '行程確認', '待購': '待購清單' };
+            const categoryEmojis = { '準備': '✈️', '打包': '🎒', '確認': '📱', '待購': '🛍️', '代購': '🛍️' };
+            const categoryLabels = { '準備': '行前準備', '打包': '行前打包', '確認': '行程確認', '待購': '待購清單', '代購': '待購清單' };
 
             for (const [category, items] of Object.entries(categories)) {
                 const emoji = categoryEmojis[category] || '📋';
