@@ -2147,78 +2147,38 @@
             <form onsubmit="saveFlightData(event)">
                 <h3 style="margin: 4px 0 12px; font-size: 13px; color: #666;">🛫 去程</h3>
                 <div class="form-group">
-                    <label>航班名稱</label>
-                    <input type="text" id="infoFlightOutName" placeholder="例：虎航 IT728">
+                    <label>日期</label>
+                    <input type="date" id="infoFlightOutDate">
                 </div>
                 <div class="form-group">
-                    <label>起飛時間（出發地時間）</label>
-                    <input type="text" id="infoFlightOutTime" placeholder="16:15">
+                    <label>班機號碼</label>
+                    <input type="text" id="infoFlightOutName" placeholder="例：IT728">
                 </div>
                 <div class="form-group">
-                    <label>到達時間（目的地時間）</label>
-                    <input type="text" id="infoFlightOutArrTime" placeholder="18:40">
-                </div>
-                <div class="form-group">
-                    <label>出發地 <span style="font-size:11px;color:#aaa;">（輸入機場代碼自動帶入時區）</span></label>
-                    <input type="text" id="infoFlightOutFrom" placeholder="例：高雄(KHH)"
-                        oninput="autoFillTZ(this.value, 'infoFlightOutFromTZ')">
-                </div>
-                <div class="form-group">
-                    <label>目的地 <span style="font-size:11px;color:#aaa;">（輸入機場代碼自動帶入時區）</span></label>
-                    <input type="text" id="infoFlightOutTo" placeholder="例：沖繩(OKA)"
-                        oninput="autoFillTZ(this.value, 'infoFlightOutToTZ')">
-                </div>
-                <div class="form-group">
-                    <label>實際飛行時間</label>
-                    <input type="text" id="infoFlightOutDuration" placeholder="1h 25m">
-                </div>
-                <div class="form-group">
-                    <label>出發時區</label>
-                    <input type="text" id="infoFlightOutFromTZ" placeholder="台灣時間 (UTC+8)"
-                        oninput="this.dataset.manualEdit='true'">
-                </div>
-                <div class="form-group">
-                    <label>到達時區</label>
-                    <input type="text" id="infoFlightOutToTZ" placeholder="日本時間 (UTC+9)"
-                        oninput="this.dataset.manualEdit='true'">
+                    <label>📷 機票照片</label>
+                    <div id="flightOutImgPreview" style="margin-bottom:8px;"></div>
+                    <button type="button" class="btn-secondary" style="width:100%;padding:10px;"
+                        onclick="triggerFlightImgUpload('Out')">＋ 上傳照片</button>
+                    <input type="file" id="flightOutImgInput" accept="image/*" style="display:none;"
+                        onchange="handleFlightImgUpload(event,'Out')">
                 </div>
 
                 <h3 style="margin: 16px 0 12px; font-size: 13px; color: #666;">🛬 回程</h3>
                 <div class="form-group">
-                    <label>航班名稱</label>
-                    <input type="text" id="infoFlightReturnName" placeholder="例：虎航 IT728">
+                    <label>日期</label>
+                    <input type="date" id="infoFlightReturnDate">
                 </div>
                 <div class="form-group">
-                    <label>起飛時間（出發地時間）</label>
-                    <input type="text" id="infoFlightReturnTime" placeholder="10:30">
+                    <label>班機號碼</label>
+                    <input type="text" id="infoFlightReturnName" placeholder="例：IT728">
                 </div>
                 <div class="form-group">
-                    <label>到達時間（目的地時間）</label>
-                    <input type="text" id="infoFlightReturnArrTime" placeholder="11:20">
-                </div>
-                <div class="form-group">
-                    <label>出發地 <span style="font-size:11px;color:#aaa;">（輸入機場代碼自動帶入時區）</span></label>
-                    <input type="text" id="infoFlightReturnFrom" placeholder="例：沖繩(OKA)"
-                        oninput="autoFillTZ(this.value, 'infoFlightReturnFromTZ')">
-                </div>
-                <div class="form-group">
-                    <label>目的地 <span style="font-size:11px;color:#aaa;">（輸入機場代碼自動帶入時區）</span></label>
-                    <input type="text" id="infoFlightReturnTo" placeholder="例：高雄(KHH)"
-                        oninput="autoFillTZ(this.value, 'infoFlightReturnToTZ')">
-                </div>
-                <div class="form-group">
-                    <label>實際飛行時間</label>
-                    <input type="text" id="infoFlightReturnDuration" placeholder="1h 50m">
-                </div>
-                <div class="form-group">
-                    <label>出發時區</label>
-                    <input type="text" id="infoFlightReturnFromTZ" placeholder="日本時間 (UTC+9)"
-                        oninput="this.dataset.manualEdit='true'">
-                </div>
-                <div class="form-group">
-                    <label>到達時區</label>
-                    <input type="text" id="infoFlightReturnToTZ" placeholder="台灣時間 (UTC+8)"
-                        oninput="this.dataset.manualEdit='true'">
+                    <label>📷 機票照片</label>
+                    <div id="flightReturnImgPreview" style="margin-bottom:8px;"></div>
+                    <button type="button" class="btn-secondary" style="width:100%;padding:10px;"
+                        onclick="triggerFlightImgUpload('Return')">＋ 上傳照片</button>
+                    <input type="file" id="flightReturnImgInput" accept="image/*" style="display:none;"
+                        onchange="handleFlightImgUpload(event,'Return')">
                 </div>
 
                 <div style="display:flex;gap:8px;margin-top:16px;">
@@ -2292,8 +2252,8 @@
             expenses: [],
             checklists: [],
             info: {
-                flightOut:    { flightName: '', time: '', arrTime: '', from: '', to: '', duration: '', fromTZ: '', toTZ: '' },
-                flightReturn: { flightName: '', time: '', arrTime: '', from: '', to: '', duration: '', fromTZ: '', toTZ: '' },
+                flightOut:    { flightName: '', date: '', image: '' },
+                flightReturn: { flightName: '', date: '', image: '' },
                 hotels: []
             }
         };
@@ -2633,13 +2593,12 @@
             } else {
                 if (!appData.info.flightOut)    appData.info.flightOut    = { ...D.info.flightOut };
                 if (!appData.info.flightReturn) appData.info.flightReturn = { ...D.info.flightReturn };
-                // 補齊舊版缺少的 flight 欄位
+                // 補齊欄位
                 ['flightOut', 'flightReturn'].forEach(k => {
                     const f = appData.info[k];
                     if (f.flightName === undefined) f.flightName = '';
-                    if (f.arrTime    === undefined) f.arrTime    = '';
-                    if (f.fromTZ     === undefined) f.fromTZ     = '';
-                    if (f.toTZ       === undefined) f.toTZ       = '';
+                    if (f.date       === undefined) f.date       = '';
+                    if (f.image      === undefined) f.image      = '';
                 });
                 // 舊版是 hotel（單筆），轉換成 hotels 陣列
                 if (!appData.info.hotels || !Array.isArray(appData.info.hotels)) {
@@ -3310,47 +3269,23 @@
                 </div>
                 <h3 style="margin-bottom: 12px; font-size: 14px; font-weight: 700;">✈️ 飛行資訊</h3>
 
-                <div class="flight-info" style="background: linear-gradient(135deg, #006B7D 0%, #00A8A8 100%); color: white; padding: 16px; border-radius: 10px; margin-bottom: 16px;">
-                    <div style="font-size: 12px; margin-bottom: 12px; opacity: 0.9;">🛫 去程${info.flightOut.flightName ? '・' + info.flightOut.flightName : ''}</div>
-                    <div style="display: flex; justify-content: space-between; align-items: center;">
-                        <div>
-                            <div style="font-size: 20px; font-weight: 800;">${info.flightOut.time || '--:--'}</div>
-                            <div style="font-size: 11px; opacity: 0.8;">${info.flightOut.from || ''}</div>
-                            <div style="font-size: 10px; opacity: 0.6;">${info.flightOut.fromTZ || ''}</div>
+                ${['flightOut', 'flightReturn'].map((key, i) => {
+                    const f = info[key] || {};
+                    const label  = i === 0 ? '🛫 去程' : '🛬 回程';
+                    const dateStr = f.date ? new Date(f.date).toLocaleDateString('zh-TW', { month: 'long', day: 'numeric', weekday: 'short' }) : '';
+                    return `
+                    <div style="background:#f8fffe;border:1.5px solid var(--border);border-radius:12px;padding:14px;margin-bottom:12px;">
+                        <div style="font-size:13px;font-weight:700;color:var(--primary);margin-bottom:8px;">
+                            ${label}
+                            ${dateStr ? `<span style="font-weight:400;color:#666;margin-left:8px;">${dateStr}</span>` : ''}
+                            ${f.flightName ? `<span style="font-weight:600;color:var(--dark);margin-left:6px;">${f.flightName}</span>` : ''}
                         </div>
-                        <div style="text-align: center;">
-                            <div style="font-size: 11px; opacity: 0.85; margin-bottom: 2px;">實際飛行</div>
-                            <div style="font-size: 15px; font-weight: 800;">${info.flightOut.duration || ''}</div>
-                            <div style="font-size: 18px; margin: 2px 0;">✈️</div>
-                        </div>
-                        <div style="text-align: right;">
-                            <div style="font-size: 20px; font-weight: 800;">${info.flightOut.arrTime || '--:--'}</div>
-                            <div style="font-size: 11px; opacity: 0.8;">${info.flightOut.to || ''}</div>
-                            <div style="font-size: 10px; opacity: 0.6;">${info.flightOut.toTZ || ''}</div>
-                        </div>
-                    </div>
-                </div>
-
-                <div class="flight-info" style="background: linear-gradient(135deg, #00A8A8 0%, #20C997 100%); color: white; padding: 16px; border-radius: 10px; margin-bottom: 16px;">
-                    <div style="font-size: 12px; margin-bottom: 12px; opacity: 0.9;">🛬 回程${info.flightReturn.flightName ? '・' + info.flightReturn.flightName : ''}</div>
-                    <div style="display: flex; justify-content: space-between; align-items: center;">
-                        <div>
-                            <div style="font-size: 20px; font-weight: 800;">${info.flightReturn.time || '--:--'}</div>
-                            <div style="font-size: 11px; opacity: 0.8;">${info.flightReturn.from || ''}</div>
-                            <div style="font-size: 10px; opacity: 0.6;">${info.flightReturn.fromTZ || ''}</div>
-                        </div>
-                        <div style="text-align: center;">
-                            <div style="font-size: 11px; opacity: 0.85; margin-bottom: 2px;">實際飛行</div>
-                            <div style="font-size: 15px; font-weight: 800;">${info.flightReturn.duration || ''}</div>
-                            <div style="font-size: 18px; margin: 2px 0;">✈️</div>
-                        </div>
-                        <div style="text-align: right;">
-                            <div style="font-size: 20px; font-weight: 800;">${info.flightReturn.arrTime || '--:--'}</div>
-                            <div style="font-size: 11px; opacity: 0.8;">${info.flightReturn.to || ''}</div>
-                            <div style="font-size: 10px; opacity: 0.6;">${info.flightReturn.toTZ || ''}</div>
-                        </div>
-                    </div>
-                </div>
+                        ${f.image
+                            ? `<img src="${f.image}" style="width:100%;border-radius:8px;max-height:200px;object-fit:cover;">`
+                            : `<div style="border:1.5px dashed var(--border);border-radius:8px;padding:20px;text-align:center;color:#bbb;font-size:12px;">尚未上傳機票照片</div>`
+                        }
+                    </div>`;
+                }).join('')}
 
                 <h3 style="margin-top: 4px; margin-bottom: 12px; font-size: 14px; font-weight: 700;">🏨 住宿資訊</h3>
                 ${(info.hotels || []).map(h => {
@@ -3737,7 +3672,84 @@
         }
 
         // 資訊編輯函數
-        // ── 機場代碼 → 時區對照表 ──
+        // ── 航班照片暫存 ──
+        let pendingFlightOutImage    = '';
+        let pendingFlightReturnImage = '';
+
+        function triggerFlightImgUpload(direction) {
+            document.getElementById(`flight${direction}ImgInput`).click();
+        }
+
+        function handleFlightImgUpload(event, direction) {
+            const file = event.target.files[0];
+            if (!file) return;
+            compressImage(file).then(dataUrl => {
+                if (direction === 'Out') {
+                    pendingFlightOutImage = dataUrl;
+                } else {
+                    pendingFlightReturnImage = dataUrl;
+                }
+                renderFlightImgPreview(direction, dataUrl);
+            });
+        }
+
+        function renderFlightImgPreview(direction, src) {
+            const el = document.getElementById(`flight${direction}ImgPreview`);
+            if (!el) return;
+            el.innerHTML = src
+                ? `<div style="position:relative;display:inline-block;width:100%;">
+                    <img src="${src}" style="width:100%;border-radius:8px;max-height:180px;object-fit:cover;">
+                    <button type="button" onclick="removeFlightImg('${direction}')"
+                        style="position:absolute;top:6px;right:6px;background:rgba(0,0,0,0.5);color:white;border:none;border-radius:50%;width:24px;height:24px;cursor:pointer;font-size:14px;">✕</button>
+                  </div>`
+                : '';
+        }
+
+        function removeFlightImg(direction) {
+            if (direction === 'Out') pendingFlightOutImage = '';
+            else pendingFlightReturnImage = '';
+            renderFlightImgPreview(direction, '');
+        }
+
+        function openFlightModal() {
+            const o = appData.info.flightOut  || {};
+            const r = appData.info.flightReturn || {};
+            const set = (id, val) => {
+                const el = document.getElementById(id);
+                if (el) {
+                    el.value = val || '';
+                    el.dataset.manualEdit = '';
+                }
+            };
+            set('infoFlightOutName',    o.flightName);
+            set('infoFlightOutDate',    o.date);
+            set('infoFlightReturnName', r.flightName);
+            set('infoFlightReturnDate', r.date);
+
+            // 照片預覽
+            pendingFlightOutImage    = o.image || '';
+            pendingFlightReturnImage = r.image || '';
+            renderFlightImgPreview('Out',    pendingFlightOutImage);
+            renderFlightImgPreview('Return', pendingFlightReturnImage);
+
+            openModal('flightModal');
+        }
+
+        function saveFlightData(e) {
+            e.preventDefault();
+            appData.info.flightOut = {
+                flightName: document.getElementById('infoFlightOutName').value,
+                date:       document.getElementById('infoFlightOutDate').value,
+                image:      pendingFlightOutImage,
+            };
+            appData.info.flightReturn = {
+                flightName: document.getElementById('infoFlightReturnName').value,
+                date:       document.getElementById('infoFlightReturnDate').value,
+                image:      pendingFlightReturnImage,
+            };
+            saveData(); renderInfo(); closeModal('flightModal');
+            showSuccessMessage('航班資訊已保存！');
+        }
         const AIRPORT_TZ = {
             // ── 台灣 (UTC+8) ──
             'KHH': '台灣時間 (UTC+8)',   // 高雄小港
