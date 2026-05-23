@@ -3264,9 +3264,12 @@
 
             let html = '';
             const categoryEmojis = { '準備': '✈️', '打包': '🎒', '確認': '📱', '待購': '🛍️' };
+            const categoryLabels = { '準備': '行前準備', '打包': '行前打包', '確認': '行程確認', '待購': '待購清單' };
 
             for (const [category, items] of Object.entries(categories)) {
-                html += `<h3 style="margin-top: 16px; margin-bottom: 12px; font-size: 14px; font-weight: 700;">${categoryEmojis[category]} 行前${category}</h3>`;
+                const emoji = categoryEmojis[category] || '📋';
+                const label = categoryLabels[category] || category;
+                html += `<h3 style="margin-top: 16px; margin-bottom: 12px; font-size: 14px; font-weight: 700;">${emoji} ${label}</h3>`;
                 
                 items.forEach(item => {
                     html += `
