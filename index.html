@@ -461,15 +461,6 @@
             color: #aaa;
             margin-left: 2px;
         }
-            font-size: 11px;
-            color: #888;
-            margin-top: 6px;
-            padding: 5px 8px;
-            background: #fafafa;
-            border-radius: 6px;
-            border-left: 2px solid var(--border);
-        }
-
         .activity-buttons {
             display: flex;
             gap: 6px;
@@ -889,7 +880,7 @@
         .form-group textarea:focus {
             outline: none;
             border-color: var(--primary);
-            box-shadow: 0 0 0 3px rgba(255,107,157,0.1);
+            box-shadow: 0 0 0 3px rgba(0,168,168,0.12);
         }
 
         .form-group textarea {
@@ -1259,6 +1250,7 @@
         .room-input:focus {
             outline: none;
             border-color: var(--primary);
+            box-shadow: 0 0 0 3px rgba(0,168,168,0.12);
         }
 
         .room-divider {
@@ -1539,6 +1531,7 @@
         .day-select:focus {
             outline: none;
             border-color: var(--primary);
+            box-shadow: 0 0 0 3px rgba(0,168,168,0.12);
         }
 
         .map-day-section {
@@ -2165,12 +2158,14 @@
                     <input type="text" id="infoFlightOutArrTime" placeholder="18:40">
                 </div>
                 <div class="form-group">
-                    <label>出發地</label>
-                    <input type="text" id="infoFlightOutFrom" placeholder="高雄(KHH)">
+                    <label>出發地 <span style="font-size:11px;color:#aaa;">（輸入機場代碼自動帶入時區）</span></label>
+                    <input type="text" id="infoFlightOutFrom" placeholder="例：高雄(KHH)"
+                        oninput="autoFillTZ(this.value, 'infoFlightOutFromTZ')">
                 </div>
                 <div class="form-group">
-                    <label>目的地</label>
-                    <input type="text" id="infoFlightOutTo" placeholder="沖繩(OKA)">
+                    <label>目的地 <span style="font-size:11px;color:#aaa;">（輸入機場代碼自動帶入時區）</span></label>
+                    <input type="text" id="infoFlightOutTo" placeholder="例：沖繩(OKA)"
+                        oninput="autoFillTZ(this.value, 'infoFlightOutToTZ')">
                 </div>
                 <div class="form-group">
                     <label>實際飛行時間</label>
@@ -2178,11 +2173,13 @@
                 </div>
                 <div class="form-group">
                     <label>出發時區</label>
-                    <input type="text" id="infoFlightOutFromTZ" placeholder="台灣時間 (UTC+8)">
+                    <input type="text" id="infoFlightOutFromTZ" placeholder="台灣時間 (UTC+8)"
+                        oninput="this.dataset.manualEdit='true'">
                 </div>
                 <div class="form-group">
                     <label>到達時區</label>
-                    <input type="text" id="infoFlightOutToTZ" placeholder="日本時間 (UTC+9)">
+                    <input type="text" id="infoFlightOutToTZ" placeholder="日本時間 (UTC+9)"
+                        oninput="this.dataset.manualEdit='true'">
                 </div>
 
                 <h3 style="margin: 16px 0 12px; font-size: 13px; color: #666;">🛬 回程</h3>
@@ -2199,12 +2196,14 @@
                     <input type="text" id="infoFlightReturnArrTime" placeholder="11:20">
                 </div>
                 <div class="form-group">
-                    <label>出發地</label>
-                    <input type="text" id="infoFlightReturnFrom" placeholder="沖繩(OKA)">
+                    <label>出發地 <span style="font-size:11px;color:#aaa;">（輸入機場代碼自動帶入時區）</span></label>
+                    <input type="text" id="infoFlightReturnFrom" placeholder="例：沖繩(OKA)"
+                        oninput="autoFillTZ(this.value, 'infoFlightReturnFromTZ')">
                 </div>
                 <div class="form-group">
-                    <label>目的地</label>
-                    <input type="text" id="infoFlightReturnTo" placeholder="高雄(KHH)">
+                    <label>目的地 <span style="font-size:11px;color:#aaa;">（輸入機場代碼自動帶入時區）</span></label>
+                    <input type="text" id="infoFlightReturnTo" placeholder="例：高雄(KHH)"
+                        oninput="autoFillTZ(this.value, 'infoFlightReturnToTZ')">
                 </div>
                 <div class="form-group">
                     <label>實際飛行時間</label>
@@ -2212,11 +2211,13 @@
                 </div>
                 <div class="form-group">
                     <label>出發時區</label>
-                    <input type="text" id="infoFlightReturnFromTZ" placeholder="日本時間 (UTC+9)">
+                    <input type="text" id="infoFlightReturnFromTZ" placeholder="日本時間 (UTC+9)"
+                        oninput="this.dataset.manualEdit='true'">
                 </div>
                 <div class="form-group">
                     <label>到達時區</label>
-                    <input type="text" id="infoFlightReturnToTZ" placeholder="台灣時間 (UTC+8)">
+                    <input type="text" id="infoFlightReturnToTZ" placeholder="台灣時間 (UTC+8)"
+                        oninput="this.dataset.manualEdit='true'">
                 </div>
 
                 <div style="display:flex;gap:8px;margin-top:16px;">
@@ -2872,64 +2873,65 @@
             const cfg = MODAL_CONFIG[entityType];
             if (!cfg) return console.error('未知 modal 實體:', entityType);
 
-            // 用 currentId 避免與全域 editingId 同名遮蔽造成混亂
             const currentId = editingState.get(cfg.editingVar);
 
-            // 從欄位收集資料
-            const item = { id: currentId || generateId() };
-            Object.entries(cfg.fields).forEach(([elId, fieldCfg]) => {
-                const el = document.getElementById(elId);
-                let val = el ? el.value : fieldCfg.default;
-                if (cfg.transform && cfg.transform[fieldCfg.key]) {
-                    val = cfg.transform[fieldCfg.key](val);
+            try {
+                // 從欄位收集資料
+                const item = { id: currentId || generateId() };
+                Object.entries(cfg.fields).forEach(([elId, fieldCfg]) => {
+                    const el = document.getElementById(elId);
+                    let val = el ? el.value : fieldCfg.default;
+                    if (cfg.transform && cfg.transform[fieldCfg.key]) {
+                        val = cfg.transform[fieldCfg.key](val);
+                    }
+                    item[fieldCfg.key] = val;
+                });
+
+                // 儲存前特殊處理（如組裝 time、transport、images）
+                if (cfg.beforeSave) cfg.beforeSave(item);
+
+                // 保留特殊欄位（如 completed）
+                if (cfg.preserve) {
+                    const preserveArr = cfg.dataPath
+                        ? appData[cfg.dataPath][cfg.dataKey]
+                        : appData[cfg.dataKey];
+                    const oldItem = currentId ? (preserveArr || []).find(i => i.id === currentId) : null;
+                    Object.assign(item, cfg.preserve(oldItem));
                 }
-                item[fieldCfg.key] = val;
-            });
 
-            // 儲存前特殊處理（如組裝 time、transport、images）
-            if (cfg.beforeSave) cfg.beforeSave(item);
+                // 寫入資料
+                if (cfg.dataPath && !appData[cfg.dataPath][cfg.dataKey]) {
+                    appData[cfg.dataPath][cfg.dataKey] = [];
+                } else if (!cfg.dataPath && !appData[cfg.dataKey]) {
+                    appData[cfg.dataKey] = [];
+                }
 
-            // 保留特殊欄位（如 completed）
-            if (cfg.preserve) {
-                const preserveArr = cfg.dataPath
+                const arr = cfg.dataPath
                     ? appData[cfg.dataPath][cfg.dataKey]
                     : appData[cfg.dataKey];
-                const oldItem = currentId ? (preserveArr || []).find(i => i.id === currentId) : null;
-                Object.assign(item, cfg.preserve(oldItem));
+
+                if (currentId) {
+                    const idx = arr.findIndex(i => i.id === currentId);
+                    if (idx > -1) arr[idx] = item;
+                    else arr.push(item);
+                } else {
+                    arr.push(item);
+                }
+
+                saveData();
+                cfg.render();
+                showSuccessMessage(`${ENTITY_CONFIG[entityType]?.label || entityType}已保存！`);
+            } catch(err) {
+                console.error('saveItem error:', err);
+                showSuccessMessage('保存時發生錯誤，請重試');
+            } finally {
+                // 無論成功失敗，都清狀態並關閉 modal
+                editingState.clear(cfg.editingVar);
+                if (cfg.editingVar === 'editingId')      editingId      = null;
+                if (cfg.editingVar === 'editingHotelId') editingHotelId = null;
+                if (cfg.editingVar === 'editingPlaceId') editingPlaceId = null;
+                closeModal(cfg.modalId);
             }
-
-            // 寫入資料
-            const targetArr = cfg.dataPath
-                ? appData[cfg.dataPath][cfg.dataKey]
-                : appData[cfg.dataKey];
-
-            if (!targetArr) {
-                if (cfg.dataPath) appData[cfg.dataPath][cfg.dataKey] = [];
-                else appData[cfg.dataKey] = [];
-            }
-
-            const arr = cfg.dataPath
-                ? appData[cfg.dataPath][cfg.dataKey]
-                : appData[cfg.dataKey];
-
-            if (currentId) {
-                const idx = arr.findIndex(i => i.id === currentId);
-                if (idx > -1) arr[idx] = item;
-                else arr.push(item);
-            } else {
-                arr.push(item);
-            }
-
-            saveData();
-            cfg.render();
-
-            // 清狀態、關 modal
-            editingState.clear(cfg.editingVar);
-            if (cfg.editingVar === 'editingId')      editingId      = null;
-            if (cfg.editingVar === 'editingHotelId') editingHotelId = null;
-            if (cfg.editingVar === 'editingPlaceId') editingPlaceId = null;
-            closeModal(cfg.modalId);
-            showSuccessMessage(`${ENTITY_CONFIG[entityType]?.label || entityType}已保存！`);
         }
 
         // ── 通用 ID 產生器 ──
@@ -3724,13 +3726,110 @@
         }
 
         // 資訊編輯函數
+        // ── 機場代碼 → 時區對照表 ──
+        const AIRPORT_TZ = {
+            // ── 台灣 (UTC+8) ──
+            'KHH': '台灣時間 (UTC+8)',   // 高雄小港
+            'TPE': '台灣時間 (UTC+8)',   // 台北桃園
+            'TSA': '台灣時間 (UTC+8)',   // 台北松山
+            'RMQ': '台灣時間 (UTC+8)',   // 台中清泉崗
+            'TNN': '台灣時間 (UTC+8)',   // 台南
+            'TTT': '台灣時間 (UTC+8)',   // 台東豐年
+            'HUN': '台灣時間 (UTC+8)',   // 花蓮
+            'MFK': '台灣時間 (UTC+8)',   // 馬祖北竿
+            'LZN': '台灣時間 (UTC+8)',   // 馬祖南竿
+            'KNH': '台灣時間 (UTC+8)',   // 金門
+            'PIF': '台灣時間 (UTC+8)',   // 屏東
+            'GNI': '台灣時間 (UTC+8)',   // 綠島
+            'KYD': '台灣時間 (UTC+8)',   // 蘭嶼
+            'WOT': '台灣時間 (UTC+8)',   // 望安
+            'CMJ': '台灣時間 (UTC+8)',   // 七美
+
+            // ── 日本 (UTC+9) ──
+            // 北海道
+            'CTS': '日本時間 (UTC+9)',   // 札幌新千歲
+            'HKD': '日本時間 (UTC+9)',   // 函館
+            'OBO': '日本時間 (UTC+9)',   // 帶廣
+            'KUH': '日本時間 (UTC+9)',   // 釧路
+            'MMB': '日本時間 (UTC+9)',   // 女滿別
+            'AKJ': '日本時間 (UTC+9)',   // 旭川
+            'WKJ': '日本時間 (UTC+9)',   // 稚內
+            'MSJ': '日本時間 (UTC+9)',   // 三澤
+            // 東北
+            'AOJ': '日本時間 (UTC+9)',   // 青森
+            'SDJ': '日本時間 (UTC+9)',   // 仙台
+            'SYO': '日本時間 (UTC+9)',   // 庄內
+            'AXT': '日本時間 (UTC+9)',   // 秋田
+            'GAJ': '日本時間 (UTC+9)',   // 山形
+            'FKS': '日本時間 (UTC+9)',   // 福島
+            // 關東
+            'NRT': '日本時間 (UTC+9)',   // 東京成田
+            'HND': '日本時間 (UTC+9)',   // 東京羽田
+            // 中部
+            'NGO': '日本時間 (UTC+9)',   // 名古屋中部
+            'FSZ': '日本時間 (UTC+9)',   // 靜岡
+            'KMQ': '日本時間 (UTC+9)',   // 小松（石川）
+            'TOY': '日本時間 (UTC+9)',   // 富山
+            'NTQ': '日本時間 (UTC+9)',   // 能登
+            // 近畿
+            'KIX': '日本時間 (UTC+9)',   // 大阪關西
+            'ITM': '日本時間 (UTC+9)',   // 大阪伊丹
+            'UKB': '日本時間 (UTC+9)',   // 神戶
+            'TTJ': '日本時間 (UTC+9)',   // 鳥取
+            'IZO': '日本時間 (UTC+9)',   // 出雲
+            // 中國・四國
+            'HIJ': '日本時間 (UTC+9)',   // 廣島
+            'OKJ': '日本時間 (UTC+9)',   // 岡山
+            'YGJ': '日本時間 (UTC+9)',   // 米子
+            'MYJ': '日本時間 (UTC+9)',   // 松山
+            'KCZ': '日本時間 (UTC+9)',   // 高知
+            'TKS': '日本時間 (UTC+9)',   // 德島
+            'TAK': '日本時間 (UTC+9)',   // 高松
+            'UBJ': '日本時間 (UTC+9)',   // 宇部（山口）
+            // 九州
+            'FUK': '日本時間 (UTC+9)',   // 福岡
+            'KKJ': '日本時間 (UTC+9)',   // 北九州
+            'HSG': '日本時間 (UTC+9)',   // 佐賀
+            'NGS': '日本時間 (UTC+9)',   // 長崎
+            'KMI': '日本時間 (UTC+9)',   // 宮崎
+            'KOJ': '日本時間 (UTC+9)',   // 鹿兒島
+            'OIT': '日本時間 (UTC+9)',   // 大分
+            'KMJ': '日本時間 (UTC+9)',   // 熊本
+            // 沖繩・離島
+            'OKA': '日本時間 (UTC+9)',   // 那霸（沖繩）
+            'ISG': '日本時間 (UTC+9)',   // 石垣
+            'MMY': '日本時間 (UTC+9)',   // 宮古
+            'IEJ': '日本時間 (UTC+9)',   // 伊江島
+            'KJP': '日本時間 (UTC+9)',   // 慶良間
+        };
+
+        // 從輸入值萃取機場代碼（支援「高雄(KHH)」或純「KHH」格式）
+        function autoFillTZ(value, tzFieldId) {
+            const tzEl = document.getElementById(tzFieldId);
+            if (!tzEl) return;
+            // 已有手動填入的值就不覆蓋
+            if (tzEl.dataset.manualEdit === 'true') return;
+
+            // 從括號內取代碼，或直接取最後3個大寫字母
+            const match = value.match(/\(([A-Z]{3})\)/) || value.match(/\b([A-Z]{3})\b/);
+            const code = match ? match[1] : value.trim().toUpperCase();
+            const tz = AIRPORT_TZ[code];
+            if (tz) {
+                tzEl.value = tz;
+                tzEl.dataset.autoFilled = 'true';
+            }
+        }
+
         // ── 航班 ──
         function openFlightModal() {
             const o = appData.info.flightOut  || {};
             const r = appData.info.flightReturn || {};
             const set = (id, val) => {
                 const el = document.getElementById(id);
-                if (el) el.value = val || '';
+                if (el) {
+                    el.value = val || '';
+                    el.dataset.manualEdit = '';  // 清除手動標記，允許自動帶入
+                }
             };
             set('infoFlightOutName',       o.flightName);
             set('infoFlightOutTime',       o.time);
@@ -4415,10 +4514,8 @@
     }
 
     function welcomeNew() {
-        // 直接用乾淨的 DEFAULT_DATA（已是空白範本）
         appData = cloneDefault();
         hideWelcome();
-        init();
         setMode('edit');
         const code = genCode();
         joinRoom(code);
