@@ -1661,14 +1661,6 @@
             opacity: 0.9;
             transform: translateY(-1px);
         }
-            background: #d4edda;
-            border-left: 4px solid var(--success);
-            padding: 12px;
-            border-radius: 6px;
-            margin-bottom: 12px;
-            font-size: 12px;
-            color: #155724;
-        }
 
         /* ============================================================
            Animations - 動畫
@@ -2290,7 +2282,6 @@
             console.error('appData 初始化失敗:', err);
             appData = cloneDefault();
         }
-        let editingId = null;
         let editingDayId = null;
 
         // ── 旅行天數工具 ──
@@ -2685,6 +2676,8 @@
                 transform:  { day: v => parseInt(v) || 1 },
                 beforeOpen: () => updateDayOptions(),
                 afterOpen: (item) => {
+                    // checkTime 標準化（舊資料可能是 H:MM 等非標準格式）
+                    document.getElementById('activityCheckTime').value = normalizeHHMM(item?.checkTime || '');
                     const { start, end, note } = parseTimeString(item?.time || '');
                     document.getElementById('activityTimeStart').value         = start;
                     document.getElementById('activityTimeEnd').value           = end;
@@ -2700,6 +2693,7 @@
                     }
                 },
                 beforeSave: (item) => {
+                    item.checkTime = normalizeHHMM(item.checkTime); // 儲存前也標準化
                     item.time      = buildTimeString();
                     item.images    = [...pendingActivityImages];
                     item.transport = {
@@ -2797,10 +2791,6 @@
 
             // 設定編輯狀態
             editingState.set(cfg.editingVar, id);
-            // 同步舊的全域變數（部分其他程式碼還依賴）
-            if (cfg.editingVar === 'editingId') editingId = id;
-            if (cfg.editingVar === 'editingHotelId') editingHotelId = id;
-            if (cfg.editingVar === 'editingPlaceId') editingPlaceId = id;
 
             // 取得資料
             const arr = cfg.dataPath
@@ -2894,9 +2884,6 @@
             } finally {
                 // 無論成功失敗，都清狀態並關閉 modal
                 editingState.clear(cfg.editingVar);
-                if (cfg.editingVar === 'editingId')      editingId      = null;
-                if (cfg.editingVar === 'editingHotelId') editingHotelId = null;
-                if (cfg.editingVar === 'editingPlaceId') editingPlaceId = null;
                 closeModal(cfg.modalId);
             }
         }
@@ -3327,25 +3314,43 @@
             container.innerHTML = html;
         }
 
-        // 解析舊格式 time 字串 → { start, end, note }
+        // ── time 字串工具 ──
+        // 統一格式：'HH:MM - HH:MM | 備註'，三段皆為選填
+
+        // 將任意時間字串標準化為 HH:MM（不合法回傳空字串）
+        function normalizeHHMM(s) {
+            if (!s) return '';
+            const m = String(s).trim().match(/^(\d{1,2}):(\d{1,2})$/);
+            if (!m) return '';
+            const h = parseInt(m[1]), min = parseInt(m[2]);
+            if (h < 0 || h > 23 || min < 0 || min > 59) return '';
+            return `${String(h).padStart(2, '0')}:${String(min).padStart(2, '0')}`;
+        }
+
+        // 解析 time 字串 → { start, end, note }
         function parseTimeString(str) {
             if (!str) return { start: '', end: '', note: '' };
-            const parts = str.split('|');
+            const parts = String(str).split('|');
             const timePart = parts[0].trim();
             const note = parts.slice(1).join('|').trim();
-            const timeParts = timePart.split('-').map(s => s.trim());
-            const toHHMM = s => /^\d{1,2}:\d{2}$/.test(s) ? s.padStart(5, '0') : '';
-            return { start: toHHMM(timeParts[0] || ''), end: toHHMM(timeParts[1] || ''), note };
+            // 支援 hyphen (-) 或 en-dash (–) 兩種分隔
+            const timeParts = timePart.split(/[-–]/).map(s => s.trim());
+            return {
+                start: normalizeHHMM(timeParts[0] || ''),
+                end:   normalizeHHMM(timeParts[1] || ''),
+                note,
+            };
         }
 
         // 組合 time picker → 單一顯示字串
         function buildTimeString() {
-            const start = document.getElementById('activityTimeStart').value;
-            const end   = document.getElementById('activityTimeEnd').value;
+            const start = normalizeHHMM(document.getElementById('activityTimeStart').value);
+            const end   = normalizeHHMM(document.getElementById('activityTimeEnd').value);
             const note  = document.getElementById('activityTimeNote').value.trim();
             let t = '';
-            if (start) t += start;
-            if (start && end) t += ` - ${end}`;
+            if (start && end)        t = `${start} - ${end}`;
+            else if (start)          t = start;
+            else if (end)            t = end;  // 只填結束時間也保留
             if (note) t += (t ? ' | ' : '') + note;
             return t;
         }
@@ -3750,157 +3755,9 @@
             saveData(); renderInfo(); closeModal('flightModal');
             showSuccessMessage('航班資訊已保存！');
         }
-        const AIRPORT_TZ = {
-            // ── 台灣 (UTC+8) ──
-            'KHH': '台灣時間 (UTC+8)',   // 高雄小港
-            'TPE': '台灣時間 (UTC+8)',   // 台北桃園
-            'TSA': '台灣時間 (UTC+8)',   // 台北松山
-            'RMQ': '台灣時間 (UTC+8)',   // 台中清泉崗
-            'TNN': '台灣時間 (UTC+8)',   // 台南
-            'TTT': '台灣時間 (UTC+8)',   // 台東豐年
-            'HUN': '台灣時間 (UTC+8)',   // 花蓮
-            'MFK': '台灣時間 (UTC+8)',   // 馬祖北竿
-            'LZN': '台灣時間 (UTC+8)',   // 馬祖南竿
-            'KNH': '台灣時間 (UTC+8)',   // 金門
-            'PIF': '台灣時間 (UTC+8)',   // 屏東
-            'GNI': '台灣時間 (UTC+8)',   // 綠島
-            'KYD': '台灣時間 (UTC+8)',   // 蘭嶼
-            'WOT': '台灣時間 (UTC+8)',   // 望安
-            'CMJ': '台灣時間 (UTC+8)',   // 七美
-
-            // ── 日本 (UTC+9) ──
-            // 北海道
-            'CTS': '日本時間 (UTC+9)',   // 札幌新千歲
-            'HKD': '日本時間 (UTC+9)',   // 函館
-            'OBO': '日本時間 (UTC+9)',   // 帶廣
-            'KUH': '日本時間 (UTC+9)',   // 釧路
-            'MMB': '日本時間 (UTC+9)',   // 女滿別
-            'AKJ': '日本時間 (UTC+9)',   // 旭川
-            'WKJ': '日本時間 (UTC+9)',   // 稚內
-            'MSJ': '日本時間 (UTC+9)',   // 三澤
-            // 東北
-            'AOJ': '日本時間 (UTC+9)',   // 青森
-            'SDJ': '日本時間 (UTC+9)',   // 仙台
-            'SYO': '日本時間 (UTC+9)',   // 庄內
-            'AXT': '日本時間 (UTC+9)',   // 秋田
-            'GAJ': '日本時間 (UTC+9)',   // 山形
-            'FKS': '日本時間 (UTC+9)',   // 福島
-            // 關東
-            'NRT': '日本時間 (UTC+9)',   // 東京成田
-            'HND': '日本時間 (UTC+9)',   // 東京羽田
-            // 中部
-            'NGO': '日本時間 (UTC+9)',   // 名古屋中部
-            'FSZ': '日本時間 (UTC+9)',   // 靜岡
-            'KMQ': '日本時間 (UTC+9)',   // 小松（石川）
-            'TOY': '日本時間 (UTC+9)',   // 富山
-            'NTQ': '日本時間 (UTC+9)',   // 能登
-            // 近畿
-            'KIX': '日本時間 (UTC+9)',   // 大阪關西
-            'ITM': '日本時間 (UTC+9)',   // 大阪伊丹
-            'UKB': '日本時間 (UTC+9)',   // 神戶
-            'TTJ': '日本時間 (UTC+9)',   // 鳥取
-            'IZO': '日本時間 (UTC+9)',   // 出雲
-            // 中國・四國
-            'HIJ': '日本時間 (UTC+9)',   // 廣島
-            'OKJ': '日本時間 (UTC+9)',   // 岡山
-            'YGJ': '日本時間 (UTC+9)',   // 米子
-            'MYJ': '日本時間 (UTC+9)',   // 松山
-            'KCZ': '日本時間 (UTC+9)',   // 高知
-            'TKS': '日本時間 (UTC+9)',   // 德島
-            'TAK': '日本時間 (UTC+9)',   // 高松
-            'UBJ': '日本時間 (UTC+9)',   // 宇部（山口）
-            // 九州
-            'FUK': '日本時間 (UTC+9)',   // 福岡
-            'KKJ': '日本時間 (UTC+9)',   // 北九州
-            'HSG': '日本時間 (UTC+9)',   // 佐賀
-            'NGS': '日本時間 (UTC+9)',   // 長崎
-            'KMI': '日本時間 (UTC+9)',   // 宮崎
-            'KOJ': '日本時間 (UTC+9)',   // 鹿兒島
-            'OIT': '日本時間 (UTC+9)',   // 大分
-            'KMJ': '日本時間 (UTC+9)',   // 熊本
-            // 沖繩・離島
-            'OKA': '日本時間 (UTC+9)',   // 那霸（沖繩）
-            'ISG': '日本時間 (UTC+9)',   // 石垣
-            'MMY': '日本時間 (UTC+9)',   // 宮古
-            'IEJ': '日本時間 (UTC+9)',   // 伊江島
-            'KJP': '日本時間 (UTC+9)',   // 慶良間
-        };
-
-        // 從輸入值萃取機場代碼（支援「高雄(KHH)」或純「KHH」格式）
-        function autoFillTZ(value, tzFieldId) {
-            const tzEl = document.getElementById(tzFieldId);
-            if (!tzEl) return;
-            // 已有手動填入的值就不覆蓋
-            if (tzEl.dataset.manualEdit === 'true') return;
-
-            // 從括號內取代碼，或直接取最後3個大寫字母
-            const match = value.match(/\(([A-Z]{3})\)/) || value.match(/\b([A-Z]{3})\b/);
-            const code = match ? match[1] : value.trim().toUpperCase();
-            const tz = AIRPORT_TZ[code];
-            if (tz) {
-                tzEl.value = tz;
-                tzEl.dataset.autoFilled = 'true';
-            }
-        }
-
-        // ── 航班 ──
-        function openFlightModal() {
-            const o = appData.info.flightOut  || {};
-            const r = appData.info.flightReturn || {};
-            const set = (id, val) => {
-                const el = document.getElementById(id);
-                if (el) {
-                    el.value = val || '';
-                    el.dataset.manualEdit = '';  // 清除手動標記，允許自動帶入
-                }
-            };
-            set('infoFlightOutName',       o.flightName);
-            set('infoFlightOutTime',       o.time);
-            set('infoFlightOutArrTime',    o.arrTime);
-            set('infoFlightOutFrom',       o.from);
-            set('infoFlightOutTo',         o.to);
-            set('infoFlightOutDuration',   o.duration);
-            set('infoFlightOutFromTZ',     o.fromTZ);
-            set('infoFlightOutToTZ',       o.toTZ);
-            set('infoFlightReturnName',    r.flightName);
-            set('infoFlightReturnTime',    r.time);
-            set('infoFlightReturnArrTime', r.arrTime);
-            set('infoFlightReturnFrom',    r.from);
-            set('infoFlightReturnTo',      r.to);
-            set('infoFlightReturnDuration',r.duration);
-            set('infoFlightReturnFromTZ',  r.fromTZ);
-            set('infoFlightReturnToTZ',    r.toTZ);
-            openModal('flightModal');
-        }
-
-        function saveFlightData(e) {
-            e.preventDefault();
-            appData.info.flightOut = {
-                flightName: document.getElementById('infoFlightOutName').value,
-                time:       document.getElementById('infoFlightOutTime').value,
-                arrTime:    document.getElementById('infoFlightOutArrTime').value,
-                from:       document.getElementById('infoFlightOutFrom').value,
-                to:         document.getElementById('infoFlightOutTo').value,
-                duration:   document.getElementById('infoFlightOutDuration').value,
-                fromTZ:     document.getElementById('infoFlightOutFromTZ').value,
-                toTZ:       document.getElementById('infoFlightOutToTZ').value,
-            };
-            appData.info.flightReturn = {
-                flightName: document.getElementById('infoFlightReturnName').value,
-                time:       document.getElementById('infoFlightReturnTime').value,
-                arrTime:    document.getElementById('infoFlightReturnArrTime').value,
-                from:       document.getElementById('infoFlightReturnFrom').value,
-                to:         document.getElementById('infoFlightReturnTo').value,
-                duration:   document.getElementById('infoFlightReturnDuration').value,
-                fromTZ:     document.getElementById('infoFlightReturnFromTZ').value,
-                toTZ:       document.getElementById('infoFlightReturnToTZ').value,
-            };
-            saveData(); renderInfo(); closeModal('flightModal');
-            showSuccessMessage('航班資訊已保存！');
-        }
 
         // ── 飯店 ──
-        let editingHotelId = null;
+        // editingState.editingHotelId 統一管理（不再使用全域變數）
 
         // 模態控制
         function openModal(id) {
@@ -3909,7 +3766,9 @@
 
         function closeModal(id) {
             document.getElementById(id).classList.remove('active');
-            editingId = null;
+            editingState.editingId      = null;
+            editingState.editingHotelId = null;
+            editingState.editingPlaceId = null;
             editingDayId = null;
         }
 
@@ -4014,7 +3873,7 @@
         }
 
         let currentMapDay = 'all';
-        let editingPlaceId = null;
+        // editingState.editingPlaceId 統一管理
 
         // ── 額外景點 CRUD ──
         function updatePlaceDayOptions() {
