@@ -808,11 +808,13 @@
             background: white;
             border-radius: 16px;
             padding: 24px;
-            max-width: 90%;
+            width: 92%;
+            max-width: 420px;
             max-height: 90vh;
             overflow-y: auto;
             box-shadow: 0 20px 60px rgba(0,0,0,0.3);
             animation: modalSlideUp 0.3s ease;
+            box-sizing: border-box;
         }
 
         @keyframes modalSlideUp {
@@ -1695,8 +1697,9 @@
             }
 
             .modal-content {
-                max-width: 95%;
-                padding: 16px;
+                width: 92%;
+                max-width: 420px;
+                padding: 18px;
             }
         }
     </style>
