@@ -2276,6 +2276,25 @@
         // 深層複製 DEFAULT_DATA 的工具函數
         function cloneDefault() { return JSON.parse(JSON.stringify(DEFAULT_DATA)); }
 
+        // HTML escape 工具：防止使用者輸入造成 XSS / 破版
+        function escapeHtml(str) {
+            if (str == null) return '';
+            return String(str)
+                .replace(/&/g, '&amp;')
+                .replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;')
+                .replace(/"/g, '&quot;')
+                .replace(/'/g, '&#39;');
+        }
+
+        // URL 安全檢查：只允許 http(s) 和相對 URL
+        function safeUrl(url) {
+            if (!url) return '';
+            const trimmed = String(url).trim();
+            if (/^(https?:|\/|\.\/|\.\.\/)/i.test(trimmed)) return trimmed;
+            return '';
+        }
+
         // 有房間碼才讀 localStorage 資料；沒房間碼用空白範本（等使用者選擇加入或建立）
         let appData;
         try {
@@ -2982,7 +3001,7 @@
             let html = '';
             for (const day of targetDays) {
                 const activities  = days[day] || [];
-                const dayTitle    = appData.dayTitles[day];
+                const dayTitle    = appData.dayTitles[day] || { emoji: '📅', title: `Day ${day}` };
                 const isToday     = dayFullDates[day] === todayStr;
 
                 // ── Day header ──
@@ -2993,7 +3012,7 @@
                             ${isToday ? '📍 今天' : `Day ${day}`}
                         </span>
                         <span class="day-title" onclick="editDayTitle(${day})">
-                            ${dayTitle.emoji} ${dayTitle.title}
+                            ${escapeHtml(dayTitle.emoji)} ${escapeHtml(dayTitle.title)}
                             <span class="edit-pencil" style="font-size:11px;opacity:0.4;">✏️</span>
                         </span>
                         <span class="day-date">${dayDates[day]}</span>
@@ -3003,17 +3022,15 @@
 
                 // ── 活動 + 交通連接 ──
                 activities.forEach((a, idx) => {
-                    const locSafe = (a.location || '').replace(/'/g, "\\'");
-
                     // 本活動有 transport → 在它「之前」插入連接線（代表從上一站來）
                     if (idx > 0 && a.transport && (a.transport.type || a.transport.duration)) {
                         const t = a.transport;
                         html += `
                         <div class="transport-link">
                             <div class="transport-info">
-                                ${t.type     ? `<span class="transport-type">${t.type}</span>` : ''}
+                                ${t.type     ? `<span class="transport-type">${escapeHtml(t.type)}</span>` : ''}
                                 ${t.type && t.duration ? `<span class="transport-sep">·</span>` : ''}
-                                ${t.duration ? `<span class="transport-duration">約 ${t.duration}</span>` : ''}
+                                ${t.duration ? `<span class="transport-duration">約 ${escapeHtml(t.duration)}</span>` : ''}
                             </div>
                         </div>`;
                     }
@@ -3038,13 +3055,13 @@
                                     ${idx === activities.length - 1 ? 'disabled' : ''} title="往下移">▼</button>
                             </div>
                             <div class="activity-header">
-                                <div class="activity-icon">${a.icon}</div>
+                                <div class="activity-icon">${escapeHtml(a.icon)}</div>
                                 <div class="activity-content">
-                                    ${a.checkTime ? `<div class="activity-check-time">⏰ ${a.checkTime}${a.checkLabel ? `<span class="activity-check-label">${a.checkLabel}</span>` : ''}</div>` : ''}
-                                    <div class="activity-title">${a.title}</div>
-                                    ${a.time ? `<div class="activity-time">🕐 ${a.time}</div>` : ''}
-                                    <div class="activity-location" onclick="openMap('${locSafe}')">📍 ${a.location}</div>
-                                    ${a.notes ? `<div class="activity-notes">📝 ${a.notes}</div>` : ''}
+                                    ${a.checkTime ? `<div class="activity-check-time">⏰ ${escapeHtml(a.checkTime)}${a.checkLabel ? `<span class="activity-check-label">${escapeHtml(a.checkLabel)}</span>` : ''}</div>` : ''}
+                                    <div class="activity-title">${escapeHtml(a.title)}</div>
+                                    ${a.time ? `<div class="activity-time">🕐 ${escapeHtml(a.time)}</div>` : ''}
+                                    <div class="activity-location" data-loc="${escapeHtml(a.location || '')}" onclick="openMap(this.dataset.loc)">📍 ${escapeHtml(a.location)}</div>
+                                    ${a.notes ? `<div class="activity-notes">📝 ${escapeHtml(a.notes)}</div>` : ''}
                                     ${(a.images && a.images.length) ? `
                                     <div class="activity-images">
                                         ${a.images.map((img, i) => `
@@ -3113,12 +3130,12 @@
                 html += `
                     <div class="expense-item">
                         <div class="expense-label">
-                            <div class="expense-icon">${expense.icon}</div>
+                            <div class="expense-icon">${escapeHtml(expense.icon)}</div>
                             <div class="expense-info">
-                                <div class="expense-name">${expense.name}
-                                    <span style="display:inline-block;background:${color}22;color:${color};font-size:10px;font-weight:700;padding:1px 7px;border-radius:8px;margin-left:5px;vertical-align:middle;">${cat}</span>
+                                <div class="expense-name">${escapeHtml(expense.name)}
+                                    <span style="display:inline-block;background:${color}22;color:${color};font-size:10px;font-weight:700;padding:1px 7px;border-radius:8px;margin-left:5px;vertical-align:middle;">${escapeHtml(cat)}</span>
                                 </div>
-                                <div class="expense-detail">${expense.detail}</div>
+                                <div class="expense-detail">${escapeHtml(expense.detail)}</div>
                             </div>
                         </div>
                         <div style="display:flex;align-items:center;gap:8px;">
@@ -3231,7 +3248,7 @@
                     html += `
                         <label class="checklist-item ${item.completed ? 'completed' : ''}">
                             <input type="checkbox" ${item.completed ? 'checked' : ''} onchange="toggleChecklistItem(${item.id})">
-                            <span class="checklist-label">${item.content}</span>
+                            <span class="checklist-label">${escapeHtml(item.content)}</span>
                             <div class="checklist-actions">
                                 <button type="button" class="btn-sm btn-edit" onclick="openItem('checklist', ${item.id})">✏️</button>
                                 <button type="button" class="btn-sm btn-delete" onclick="deleteItem('checklist', ${item.id})">🗑️</button>
@@ -3268,7 +3285,7 @@
                         <div style="font-size:13px;font-weight:700;color:var(--primary);margin-bottom:8px;">
                             ${label}
                             ${dateStr ? `<span style="font-weight:400;color:#666;margin-left:8px;">${dateStr}</span>` : ''}
-                            ${f.flightName ? `<span style="font-weight:600;color:var(--dark);margin-left:6px;">${f.flightName}</span>` : ''}
+                            ${f.flightName ? `<span style="font-weight:600;color:var(--dark);margin-left:6px;">${escapeHtml(f.flightName)}</span>` : ''}
                         </div>
                         ${f.image
                             ? `<img src="${f.image}" style="width:100%;border-radius:8px;max-height:200px;object-fit:cover;">`
@@ -3285,9 +3302,9 @@
                     return `
                     <div style="background:white;border:1.5px solid #eef0f0;border-radius:14px;padding:14px 16px;margin-bottom:12px;box-shadow:0 2px 8px rgba(0,0,0,0.05);">
                         <div style="display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:10px;">
-                            <div style="font-size:14px;font-weight:800;color:var(--dark);flex:1;">${h.name}</div>
+                            <div style="font-size:14px;font-weight:800;color:var(--dark);flex:1;">${escapeHtml(h.name)}</div>
                             <div style="display:flex;gap:6px;flex-shrink:0;margin-left:8px;">
-                                ${h.mapUrl ? `<a href="${h.mapUrl}" target="_blank" style="background:var(--light);border:1px solid var(--border);border-radius:8px;padding:4px 8px;font-size:11px;font-weight:700;color:var(--secondary);text-decoration:none;">🗺️ 地圖</a>` : ''}
+                                ${safeUrl(h.mapUrl) ? `<a href="${escapeHtml(h.mapUrl)}" target="_blank" rel="noopener" style="background:var(--light);border:1px solid var(--border);border-radius:8px;padding:4px 8px;font-size:11px;font-weight:700;color:var(--secondary);text-decoration:none;">🗺️ 地圖</a>` : ''}
                                 <button class="btn-sm btn-edit" onclick="openItem('hotel', ${h.id})">✏️</button>
                                 <button class="btn-sm btn-delete" onclick="deleteItem('hotel', ${h.id})">🗑️</button>
                             </div>
@@ -3295,19 +3312,19 @@
                         <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;font-size:12px;">
                             ${h.checkIn ? `<div style="background:var(--light);padding:8px 10px;border-radius:8px;">
                                 <div style="color:#aaa;font-size:10px;margin-bottom:2px;">入住</div>
-                                <div style="font-weight:700;color:var(--dark);">${h.checkIn}</div>
+                                <div style="font-weight:700;color:var(--dark);">${escapeHtml(h.checkIn)}</div>
                             </div>` : ''}
                             ${h.checkOut ? `<div style="background:var(--light);padding:8px 10px;border-radius:8px;">
                                 <div style="color:#aaa;font-size:10px;margin-bottom:2px;">退房${nights ? ` · ${nights}晚` : ''}</div>
-                                <div style="font-weight:700;color:var(--dark);">${h.checkOut}</div>
+                                <div style="font-weight:700;color:var(--dark);">${escapeHtml(h.checkOut)}</div>
                             </div>` : ''}
                             ${h.platform ? `<div style="background:var(--light);padding:8px 10px;border-radius:8px;">
                                 <div style="color:#aaa;font-size:10px;margin-bottom:2px;">訂房平台</div>
-                                <div style="font-weight:700;color:var(--dark);">${h.platform}</div>
+                                <div style="font-weight:700;color:var(--dark);">${escapeHtml(h.platform)}</div>
                             </div>` : ''}
                             ${h.bookingId ? `<div style="background:var(--light);padding:8px 10px;border-radius:8px;">
                                 <div style="color:#aaa;font-size:10px;margin-bottom:2px;">訂單編號</div>
-                                <div style="font-weight:700;color:var(--dark);font-size:11px;word-break:break-all;">${h.bookingId}</div>
+                                <div style="font-weight:700;color:var(--dark);font-size:11px;word-break:break-all;">${escapeHtml(h.bookingId)}</div>
                             </div>` : ''}
                         </div>
                     </div>`;
@@ -3650,7 +3667,7 @@
         // 日期標題編輯函數
         function editDayTitle(dayId) {
             editingDayId = dayId;
-            const title = appData.dayTitles[dayId];
+            const title = appData.dayTitles[dayId] || { emoji: '📅', title: `Day ${dayId}` };
             document.getElementById('dayTitleModalTitle').textContent = `編輯 Day ${dayId} 標題`;
             document.getElementById('dayTitleEmoji').value = title.emoji;
             document.getElementById('dayTitleText').value = title.title;
@@ -4004,12 +4021,12 @@
             return `
                 <div style="display:flex;align-items:center;">
                     <a class="map-place-card" href="${url}" target="_blank" rel="noopener" style="flex:1;${isExtra ? 'background:#FFF9F0;border-color:#FFE5B4;' : ''}">
-                        <div class="map-place-icon">${p.icon || '📍'}</div>
+                        <div class="map-place-icon">${escapeHtml(p.icon || '📍')}</div>
                         <div class="map-place-body">
-                            <div class="map-place-title">${p.title}${isExtra ? ' <span style="font-size:9px;color:#FF9F43;background:#FFE5B4;padding:1px 5px;border-radius:6px;margin-left:3px;">想去</span>' : ''}</div>
-                            <div class="map-place-loc">📍 ${p.location}</div>
-                            ${p.time ? `<div class="map-place-time">🕐 ${p.time}</div>` : ''}
-                            ${p.notes ? `<div class="map-place-time">📝 ${p.notes}</div>` : ''}
+                            <div class="map-place-title">${escapeHtml(p.title)}${isExtra ? ' <span style="font-size:9px;color:#FF9F43;background:#FFE5B4;padding:1px 5px;border-radius:6px;margin-left:3px;">想去</span>' : ''}</div>
+                            <div class="map-place-loc">📍 ${escapeHtml(p.location)}</div>
+                            ${p.time ? `<div class="map-place-time">🕐 ${escapeHtml(p.time)}</div>` : ''}
+                            ${p.notes ? `<div class="map-place-time">📝 ${escapeHtml(p.notes)}</div>` : ''}
                         </div>
                     </a>
                     ${editBtns}
