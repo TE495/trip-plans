@@ -8,6 +8,17 @@
     <meta name="version" content="20250521-11">
     <title>旅遊行程規劃</title>
 
+    <!-- Open Graph：控制 LINE / FB / iMessage 連結預覽 -->
+    <meta property="og:title"       content="🇯🇵 沖繩之旅 2026">
+    <meta property="og:description" content="2026.07.16 - 07.20｜5日4夜｜">
+    <meta property="og:type"        content="website">
+    <meta property="og:url"         content="https://te495.github.io/trip-plans/">
+    <meta property="og:image"       content="https://www.galilee.com.tw/Page/Skittles_Pic/hash_00e5510da8c4aa437988f779b0220ead_1920_10000.jpg">
+    <meta property="og:image:width"  content="1200">
+    <meta property="og:image:height" content="630">
+    <meta property="og:locale"      content="zh_TW">
+    <meta name="description"        content="2026.07.16 - 07.20｜5日4夜｜">
+
 
 
     <!-- Firebase SDK -->
@@ -4169,8 +4180,13 @@
         if (currentRoom) {
             joinRoom(currentRoom);
         } else {
-            // 強制重新整理清快取
-            window.location.href = window.location.href.split('?')[0] + '?v=' + Date.now();
+            // 強制重新整理清快取，唯讀模式保留 room & view 參數
+            if (_isReadonly) {
+                window.location.href = window.location.href.split('?')[0]
+                    + '?room=' + _urlRoom + '&view=1&v=' + Date.now();
+            } else {
+                window.location.href = window.location.href.split('?')[0] + '?v=' + Date.now();
+            }
         }
     }
 
@@ -4245,6 +4261,11 @@
             if (!snap || !snap.exists()) {
                 if (firstLoad) {
                     firstLoad = false;
+                    // 唯讀模式：不寫入 Firebase，直接顯示空行程
+                    if (_isReadonly) {
+                        setSyncStatus('connected', '已同步');
+                        return;
+                    }
                     isSyncing = true;
                     ref.set(appData)
                         .then(() => { setSyncStatus('connected', '已同步'); isSyncing = false; })
@@ -4332,6 +4353,8 @@
 
     const _origSaveData = saveData;
     saveData = function() {
+        // 唯讀模式：完全禁止寫入 Firebase
+        if (_isReadonly) return;
         saveStorage('okinawaData', appData);
         if (currentRoom && !isSyncing) {
             setSyncStatus('syncing', '同步中…');
