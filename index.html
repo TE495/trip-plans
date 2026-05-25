@@ -155,6 +155,30 @@
 
         body.view-mode .header-img-btn { display: none; }
 
+        /* ── 唯讀分享模式 ── */
+        body.readonly-mode .mode-switch { display: none !important; }
+        body.readonly-mode .sync-btn { display: none !important; }
+        body.readonly-mode .sync-room { display: none !important; }
+        body.readonly-mode .sync-bar {
+            justify-content: center;
+            gap: 0;
+        }
+        .readonly-banner {
+            display: none;
+            background: rgba(255,255,255,0.18);
+            backdrop-filter: blur(8px);
+            border: 1px solid rgba(255,255,255,0.35);
+            border-radius: 20px;
+            color: white;
+            font-size: 11px;
+            font-weight: 700;
+            padding: 5px 14px;
+            margin: 6px auto 0;
+            letter-spacing: 0.3px;
+            width: fit-content;
+        }
+        body.readonly-mode .readonly-banner { display: block; }
+
         header::before {
             content: '';
             position: absolute;
@@ -1651,7 +1675,9 @@
                 <button class="sync-btn" id="syncRetryBtn" style="display:none;" onclick="retryConnection()">重試</button>
                 <button class="sync-btn" onclick="showRoomModal()">換房間</button>
                 <button class="sync-btn" onclick="shareRoom()">邀請</button>
+                <button class="sync-btn" onclick="shareReadonly()">👁️ 分享預覽</button>
             </div>
+            <div class="readonly-banner">👁️ 預覽模式・僅供檢視</div>
             <h1 id="tripTitle" onclick="openTripModal()" style="cursor:pointer;margin-top:22px;" title="點擊編輯">🇯🇵 沖繩之旅</h1>
             <p class="trip-info" id="tripInfo">2026.07.16 - 07.20 | 5日4夜</p>
             <div class="mode-switch" role="tablist" aria-label="顯示模式">
@@ -4285,6 +4311,23 @@
         }
     }
 
+    // ── 分享唯讀預覽連結 ──
+    function shareReadonly() {
+        if (!currentRoom) { alert('請先建立或加入房間，再分享預覽連結。'); return; }
+        const t = (typeof appData !== 'undefined' && appData.trip) || {};
+        const tripName = `${t.emoji || '🌏'} ${t.title || '我的旅行'}`;
+        const link = `https://te495.github.io/trip-plans/?room=${currentRoom}&view=1`;
+        const text = `${tripName} 行程預覽 👀\n點連結即可查看（不能編輯）：\n${link}`;
+
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+            navigator.clipboard.writeText(text)
+                .then(() => showSuccessMessage('✅ 唯讀連結已複製！'))
+                .catch(() => tryNativeShare(tripName, text));
+        } else {
+            tryNativeShare(tripName, text);
+        }
+    }
+
     function tryNativeShare(title, text) {
         if (navigator.share) {
             navigator.share({ title, text }).catch(() => {
@@ -4344,7 +4387,26 @@
     }
 
     // ── 自動恢復上次房間 or 顯示歡迎畫面 ──
-    if (currentRoom) {
+    // 先偵測 URL 參數（?room=XXXX&view=1）
+    const _urlParams = new URLSearchParams(window.location.search);
+    const _urlRoom   = _urlParams.get('room');
+    const _urlView   = _urlParams.get('view');
+    const _isReadonly = !!(_urlRoom && _urlView === '1');
+
+    if (_isReadonly) {
+        // 唯讀預覽模式：強制 view-mode + readonly-mode，不可切換
+        document.body.classList.add('readonly-mode');
+        setMode('view');
+        // 鎖定模式切換按鈕
+        document.getElementById('modeViewBtn').onclick = null;
+        document.getElementById('modeEditBtn').onclick = null;
+        // 鎖定標題點擊編輯
+        const titleEl = document.getElementById('tripTitle');
+        if (titleEl) { titleEl.onclick = null; titleEl.style.cursor = 'default'; titleEl.title = ''; }
+        // 加入房間並顯示
+        setRoomCode(_urlRoom);
+        joinRoom(_urlRoom);
+    } else if (currentRoom) {
         setRoomCode(currentRoom);
         joinRoom(currentRoom);
     } else {
