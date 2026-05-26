@@ -4271,6 +4271,7 @@
         }
         fbListener = null;
         isSyncing = false; // 重置同步狀態
+        ignoreNextSnapshot = false; // 防止 Safari BFCache 殘留
 
         currentRoom = code;
         if (!_isReadonly) localStorage.setItem('okinawaRoom', code);
@@ -4333,8 +4334,9 @@
             } catch (e) {
                 console.error('render error', e);
                 setSyncStatus('error', '載入錯誤');
+            } finally {
+                isSyncing = false;
             }
-            isSyncing = false;
 
         }, err => {
             clearTimeout(timeoutId);
@@ -4462,6 +4464,17 @@
     } else {
         showWelcome();
     }
+
+    // ── Safari BFCache 恢復處理 ──
+    window.addEventListener('pageshow', (e) => {
+        if (!e.persisted) return;
+        isSyncing = false;
+        ignoreNextSnapshot = false;
+        if (currentRoom) {
+            setSyncStatus('syncing', '重新連線…');
+            joinRoom(currentRoom);
+        }
+    });
     </script>
 </body>
 </html>
