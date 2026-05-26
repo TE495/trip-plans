@@ -4280,21 +4280,31 @@
 
         const ref = db.ref(`rooms/${code}/data`);
         currentRef = ref;
-        try { if (ref.keepSynced) ref.keepSynced(true); } catch(e) {}
 
         let firstLoad = true;
         let resolved  = false;
 
-        // 逾時保護
+        // 逾時保護（含自動重試，最多 3 次）
+        if (!joinRoom._retryCount) joinRoom._retryCount = 0;
         const timeoutId = setTimeout(() => {
             if (!resolved) {
-                setSyncStatus('error', '連線逾時');
+                if (joinRoom._retryCount < 3) {
+                    joinRoom._retryCount++;
+                    setSyncStatus('syncing', `重試中… (${joinRoom._retryCount}/3)`);
+                    retryConnection();
+                } else {
+                    joinRoom._retryCount = 0;
+                    setSyncStatus('error', '連線逾時');
+                }
+            } else {
+                joinRoom._retryCount = 0;
             }
-        }, 12000);
+        }, 20000);
 
         fbListener = ref.on('value', snap => {
             resolved = true;
             clearTimeout(timeoutId);
+            joinRoom._retryCount = 0; // 連線成功，重置重試計數
 
             if (!snap || !snap.exists()) {
                 if (firstLoad) {
