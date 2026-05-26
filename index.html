@@ -4291,7 +4291,7 @@
                 if (joinRoom._retryCount < 3) {
                     joinRoom._retryCount++;
                     setSyncStatus('syncing', `重試中… (${joinRoom._retryCount}/3)`);
-                    retryConnection();
+                    joinRoom(code);
                 } else {
                     joinRoom._retryCount = 0;
                     setSyncStatus('error', '連線逾時');
