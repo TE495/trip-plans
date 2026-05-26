@@ -4488,6 +4488,19 @@
             joinRoom(currentRoom);
         }
     });
+
+    // ── 定時檢查連線狀態（每 30 秒），斷線自動重連 ──
+    setInterval(() => {
+        if (!currentRoom) return;
+        firebase.database().ref('.info/connected')
+            .once('value')
+            .then(snap => {
+                if (snap.val() === false) {
+                    joinRoom(currentRoom);
+                }
+            })
+            .catch(() => {}); // 靜默處理錯誤，不影響使用者
+    }, 30000);
     </script>
 </body>
 </html>
