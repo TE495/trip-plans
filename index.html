@@ -6,9 +6,6 @@
     <meta name="theme-color" content="#00A8A8">
     <!-- 版本號：每次上傳 GitHub 時更新，控制快取更新 -->
     <meta name="version" content="20250521-11">
-    <!-- ⚠️ DEBUG 用，測完記得移除 -->
-    <script src="https://cdn.jsdelivr.net/npm/eruda"></script>
-    <script>eruda.init();</script>
     <title>旅遊行程規劃</title>
 
     <!-- Open Graph：控制 LINE / FB / iMessage 連結預覽 -->
@@ -4188,14 +4185,18 @@
         }
         db = firebase.database();
 
-        // Firebase 連線狀態監聽：網路恢復時自動重連
+        // Firebase 連線狀態監聽：斷線立刻重連（解決 Safari WebSocket 1006 問題）
+        let _connectedFirstCall = true;
         db.ref('.info/connected').on('value', snap => {
             const connected = snap && snap.val() === true;
-            if (connected && currentRoom) {
-                const lbl = document.getElementById('syncLabel');
-                if (lbl && (lbl.textContent === '連線逾時' || lbl.textContent === '同步失敗')) {
-                    joinRoom(currentRoom);
-                }
+            if (_connectedFirstCall) {
+                _connectedFirstCall = false;
+                return; // 忽略第一次（初始化時的狀態）
+            }
+            if (!connected && currentRoom) {
+                // 斷線了，立刻嘗試重連
+                setSyncStatus('syncing', '重新連線…');
+                setTimeout(() => joinRoom(currentRoom), 1000); // 延遲 1 秒避免瞬間重試
             }
         }, err => {
             console.error('Firebase connected listener error:', err);
