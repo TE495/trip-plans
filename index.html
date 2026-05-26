@@ -664,8 +664,13 @@
         body.view-mode .toolbar,
         body.view-mode .edit-pencil,
         body.view-mode #info-content .btn-sm,
-        body.view-mode #info-content a.btn-sm {
+        body.view-mode #info-content a.btn-sm,
+        body.view-mode .map-edit-btns {
             display: none !important;
+        }
+
+        body.view-mode .checklist-item input[type="checkbox"] {
+            pointer-events: none;
         }
 
         body.view-mode .day-title {
@@ -972,9 +977,9 @@
         }
 
         .btn-primary:hover {
-            background: #FF5587;
+            background: #008C8C;
             transform: translateY(-2px);
-            box-shadow: 0 5px 15px rgba(255,107,157,0.3);
+            box-shadow: 0 5px 15px rgba(0,168,168,0.3);
         }
 
         .btn-secondary {
@@ -1620,6 +1625,27 @@
         .map-open-all:hover {
             opacity: 0.9;
             transform: translateY(-1px);
+        }
+
+        /* ── 提示訊息 ── */
+        .success-message {
+            background: #00A8A8;
+            color: white;
+            padding: 10px 20px;
+            border-radius: 10px;
+            font-size: 13px;
+            font-weight: 600;
+            box-shadow: 0 4px 16px rgba(0,0,0,0.15);
+            animation: toastIn 0.3s ease, toastOut 0.3s ease 1.7s forwards;
+        }
+
+        @keyframes toastIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to   { opacity: 1; transform: translateY(0); }
+        }
+        @keyframes toastOut {
+            from { opacity: 1; transform: translateY(0); }
+            to   { opacity: 0; transform: translateY(10px); }
         }
 
         /* ============================================================
@@ -3370,7 +3396,13 @@
 
         // ── 圖片壓縮（上傳前自動縮小到最大 1024px，品質 0.82）──
         function compressImage(file, maxSize = 1024, quality = 0.82) {
-            return new Promise(resolve => {
+            return new Promise((resolve, reject) => {
+                // 前置檢查：超過 10MB 直接拒絕（避免記憶體爆掉）
+                if (file.size > 10 * 1024 * 1024) {
+                    alert('⚠️ 圖片太大（超過 10MB），請選擇較小的圖片。');
+                    reject(new Error('圖片超過 10MB'));
+                    return;
+                }
                 const reader = new FileReader();
                 reader.onload = ev => {
                     const img = new Image();
@@ -3636,6 +3668,7 @@
 
         // 清單編輯函數
         function toggleChecklistItem(id) {
+            if (isViewMode) return; // 唯讀模式不可打勾
             const item = appData.checklists.find(i => i.id === id);
             if (item) {
                 item.completed = !item.completed;
@@ -3813,7 +3846,10 @@
 
         // 點擊模態外部關閉
         // 模式切換（瀏覽 / 編輯）
+        let isViewMode = false;
+
         function setMode(mode) {
+            isViewMode = (mode === 'view');
             if (mode === 'view') {
                 document.body.classList.add('view-mode');
                 document.getElementById('modeViewBtn').classList.add('active');
@@ -3961,7 +3997,7 @@
             const url = `https://www.google.com/maps/search/${q}`;
             const isExtra = p._type === 'extra';
             const editBtns = isExtra
-                ? `<div style="display:flex;flex-direction:column;gap:3px;flex-shrink:0;margin-left:6px;">
+                ? `<div class="map-edit-btns" style="display:flex;flex-direction:column;gap:3px;flex-shrink:0;margin-left:6px;">
                     <button class="btn-sm btn-edit" style="padding:2px 6px;font-size:10px;" onclick="event.preventDefault();event.stopPropagation();openItem('place', ${p.id})">✏️</button>
                     <button class="btn-sm btn-delete" style="padding:2px 6px;font-size:10px;" onclick="event.preventDefault();event.stopPropagation();deleteItem('place', ${p.id})">🗑️</button>
                   </div>`
@@ -4237,7 +4273,7 @@
         isSyncing = false; // 重置同步狀態
 
         currentRoom = code;
-        localStorage.setItem('okinawaRoom', code);
+        if (!_isReadonly) localStorage.setItem('okinawaRoom', code);
         setRoomCode(code);
         setSyncStatus('syncing', '連線中…');
 
@@ -4286,7 +4322,7 @@
             try {
                 appData = snap.val();
                 migrateData();
-                saveStorage('okinawaData', appData);
+                if (!isViewMode) saveStorage('okinawaData', appData);
                 initBanner();
                 renderTripHeader();
                 renderItinerary();
@@ -4352,10 +4388,9 @@
         }
     }
 
-    const _origSaveData = saveData;
     saveData = function() {
-        // 唯讀模式：完全禁止寫入 Firebase
-        if (_isReadonly) return;
+        // 唯讀模式或瀏覽模式：禁止寫入
+        if (_isReadonly || isViewMode) return;
         saveStorage('okinawaData', appData);
         if (currentRoom && !isSyncing) {
             setSyncStatus('syncing', '同步中…');
