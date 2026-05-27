@@ -4267,7 +4267,7 @@
         closeRoomModal();
         // 正確取消舊的 listener
         if (currentRef) {
-            try { currentRef.off(); } catch(e) {}
+            try { currentRef.off('value', fbListener); } catch(e) {}
             currentRef = null;
         }
         fbListener = null;
@@ -4402,9 +4402,13 @@
     }
 
     saveData = function() {
-        // 唯讀模式或瀏覽模式：禁止寫入
-        if (_isReadonly || document.body.classList.contains('view-mode')) return;
+        // 唯讀分享模式：完全禁止寫入
+        if (_isReadonly) return;
+
+        // 瀏覽模式（自己切換的 👁️）：只存本地，不推 Firebase
         saveStorage('okinawaData', appData);
+        if (document.body.classList.contains('view-mode')) return;
+
         if (currentRoom && !isSyncing) {
             setSyncStatus('syncing', '同步中…');
             ignoreNextSnapshot = true;
@@ -4490,6 +4494,7 @@
     // ── 定時檢查連線狀態（每 30 秒），斷線自動重連 ──
     setInterval(() => {
         if (!currentRoom) return;
+        if (document.querySelector('.modal.active')) return; // modal 開著時不重連
         firebase.database().ref('.info/connected')
             .once('value')
             .then(snap => {
