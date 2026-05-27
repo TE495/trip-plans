@@ -4413,7 +4413,7 @@
             setSyncStatus('syncing', '同步中…');
             ignoreNextSnapshot = true;
             db.ref(`rooms/${currentRoom}/data`).set(appData)
-                .then(() => setSyncStatus('connected', '已同步'))
+                .then(() => { setSyncStatus('connected', '已同步'); ignoreNextSnapshot = false; })
                 .catch(() => { setSyncStatus('error', '同步失敗'); ignoreNextSnapshot = false; });
         }
     };
