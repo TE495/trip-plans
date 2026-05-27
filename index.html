@@ -446,45 +446,6 @@
             margin-top: 10px;
         }
 
-        /* ── 活動之間的插入點 ── */
-        .insert-point {
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            height: 8px;
-            margin: -3px 0;
-            color: transparent;
-            font-size: 16px;
-            font-weight: 700;
-            cursor: pointer;
-            border-radius: 8px;
-            transition: all 0.2s;
-            position: relative;
-            user-select: none;
-        }
-        .insert-point::before {
-            content: '';
-            position: absolute;
-            left: 0;
-            right: 0;
-            height: 1.5px;
-            background: transparent;
-            border-radius: 2px;
-            transition: background 0.2s;
-        }
-        .insert-point:hover {
-            height: 28px;
-            margin: 4px 0;
-            color: var(--primary);
-            background: rgba(0,168,168,0.05);
-        }
-        .insert-point:hover::before {
-            background: var(--primary);
-            opacity: 0.4;
-        }
-        /* 瀏覽模式下隱藏 */
-        body.view-mode .insert-point { display: none; }
-
         /* ── 交通連接（活動之間）── */
         .transport-link {
             display: flex;
@@ -2936,20 +2897,6 @@
                     const idx = arr.findIndex(i => i.id === currentId);
                     if (idx > -1) arr[idx] = item;
                     else arr.push(item);
-                } else if (entityType === 'activity' && pendingInsertAt !== null) {
-                    // 插入到指定位置（在某天的某個位置之間）
-                    const { day, idx } = pendingInsertAt;
-                    // 取得該天的活動陣列
-                    const dayActs = arr.filter(a => a.day === day);
-                    const others  = arr.filter(a => a.day !== day);
-                    // 確保新活動的 day 正確
-                    item.day = day;
-                    dayActs.splice(idx, 0, item);
-                    // 重建 activities 陣列（other day 在前，這天的活動按順序）
-                    const merged = [...others, ...dayActs].sort((a, b) => a.day - b.day);
-                    arr.length = 0;
-                    arr.push(...merged);
-                    pendingInsertAt = null;
                 } else {
                     arr.push(item);
                 }
@@ -3078,13 +3025,8 @@
                     <div class="timeline">
                 `;
 
-                // ── 活動 + 交通連接 + 插入點 ──
+                // ── 活動 + 交通連接 ──
                 activities.forEach((a, idx) => {
-                    // 在第一個活動「之前」加插入點
-                    if (idx === 0) {
-                        html += `<div class="insert-point" onclick="openInsertActivity(${day}, 0)" title="在此插入活動">＋</div>`;
-                    }
-
                     // 本活動有 transport → 在它「之前」插入連接線（代表從上一站來）
                     if (idx > 0 && a.transport && (a.transport.type || a.transport.duration)) {
                         const t = a.transport;
@@ -3101,9 +3043,9 @@
                     html += `
                         <div class="activity" data-id="${a.id}" data-day="${a.day}">
                             <div class="sort-btns">
-                                <button class="sort-btn" onclick="moveActivity('${a.id}',${a.day},-1)"
+                                <button class="sort-btn" onclick="moveActivity('${a.id}',\${a.day},-1)"
                                     ${idx === 0 ? 'disabled' : ''} title="往上移">▲</button>
-                                <button class="sort-btn" onclick="moveActivity('${a.id}',${a.day},1)"
+                                <button class="sort-btn" onclick="moveActivity('${a.id}',\${a.day},1)"
                                     ${idx === activities.length - 1 ? 'disabled' : ''} title="往下移">▼</button>
                             </div>
                             <div class="activity-header">
@@ -3132,7 +3074,6 @@
                                 </div>
                             </div>
                         </div>
-                        <div class="insert-point" onclick="openInsertActivity(${day}, ${idx + 1})" title="在此插入活動">＋</div>
                     `;
                 });
 
@@ -3827,7 +3768,6 @@
             editingState.editingHotelId = null;
             editingState.editingPlaceId = null;
             editingDayId = null;
-            pendingInsertAt = null; // 取消插入意圖
         }
 
         // Google Maps 導航
@@ -3919,14 +3859,6 @@
         // ── 地圖頁 ──
 
         function openAddActivityForDay(day) {
-            openItem('activity');
-            document.getElementById('activityDay').value = day;
-        }
-
-        // 在指定位置插入活動（day 中的第 idx 個位置）
-        let pendingInsertAt = null;
-        function openInsertActivity(day, idx) {
-            pendingInsertAt = { day, idx };
             openItem('activity');
             document.getElementById('activityDay').value = day;
         }
