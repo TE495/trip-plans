@@ -3668,7 +3668,7 @@
 
         // 清單編輯函數
         function toggleChecklistItem(id) {
-            if (isViewMode) return; // 唯讀模式不可打勾
+            if (document.body.classList.contains('view-mode')) return; // 瀏覽模式不可打勾
             const item = appData.checklists.find(i => i.id === id);
             if (item) {
                 item.completed = !item.completed;
@@ -3846,10 +3846,7 @@
 
         // 點擊模態外部關閉
         // 模式切換（瀏覽 / 編輯）
-        let isViewMode = false;
-
         function setMode(mode) {
-            isViewMode = (mode === 'view');
             if (mode === 'view') {
                 document.body.classList.add('view-mode');
                 document.getElementById('modeViewBtn').classList.add('active');
@@ -4337,7 +4334,7 @@
             try {
                 appData = snap.val();
                 migrateData();
-                if (!isViewMode) saveStorage('okinawaData', appData);
+                if (!document.body.classList.contains('view-mode')) saveStorage('okinawaData', appData);
                 initBanner();
                 renderTripHeader();
                 renderItinerary();
@@ -4406,7 +4403,7 @@
 
     saveData = function() {
         // 唯讀模式或瀏覽模式：禁止寫入
-        if (_isReadonly || isViewMode) return;
+        if (_isReadonly || document.body.classList.contains('view-mode')) return;
         saveStorage('okinawaData', appData);
         if (currentRoom && !isSyncing) {
             setSyncStatus('syncing', '同步中…');
