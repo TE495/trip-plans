@@ -627,23 +627,36 @@
         }
         .drag-handle {
             position: absolute;
-            left: -30px;
-            top: 50%;
-            transform: translateY(-50%);
-            font-size: 14px;
-            color: #ccc;
+            right: 10px;
+            bottom: 6px;
+            font-size: 16px;
+            color: #bbb;
             cursor: grab;
             user-select: none;
             line-height: 1;
-            padding: 4px 2px;
+            padding: 6px 8px;
             opacity: 0;
             transition: opacity 0.15s;
+            letter-spacing: -3px;
+            touch-action: none;
+            z-index: 2;
         }
 
         /* 編輯模式才顯示 handle */
         body:not(.view-mode) .activity:hover .drag-handle,
         body:not(.view-mode) .activity.dragging .drag-handle {
-            opacity: 1;
+            opacity: 0.6;
+        }
+        body:not(.view-mode) .drag-handle:hover {
+            opacity: 1 !important;
+            color: var(--primary);
+        }
+
+        /* 手機上一直顯示 */
+        @media (hover: none) {
+            body:not(.view-mode) .drag-handle {
+                opacity: 0.5;
+            }
         }
 
         .activity.dragging {
@@ -3056,6 +3069,7 @@
 
                     html += `
                         <div class="activity" data-id="${a.id}" data-day="${a.day}">
+                            <div class="drag-handle" title="長按拖拉排序">⋮⋮</div>
                             <div class="sort-btns">
                                 <button class="sort-btn" onclick="moveActivity('${a.id}',${a.day},-1)\"
                                     ${idx === 0 ? 'disabled' : ''} title="往上移">▲</button>
@@ -3582,6 +3596,7 @@
                 });
 
                 // ── Touch long press drag ──
+                let touchMoveHandler, touchEndHandler;
                 handle.addEventListener('touchstart', e => {
                     longPressTimer = setTimeout(() => {
                         touchDragActive = true;
@@ -3589,42 +3604,44 @@
                         dragSrcDay = parseInt(el.dataset.day);
                         el.classList.add('dragging');
                         navigator.vibrate && navigator.vibrate(40);
+
+                        // 綁到 document 上，這樣手指離開 handle 也能追蹤
+                        touchMoveHandler = (ev) => {
+                            if (!touchDragActive) return;
+                            ev.preventDefault();
+                            const touch  = ev.touches[0];
+                            const target = document.elementFromPoint(touch.clientX, touch.clientY);
+                            const card   = target && target.closest('.activity[data-id]');
+                            document.querySelectorAll('.activity.drag-over').forEach(x => x.classList.remove('drag-over'));
+                            if (card && card.dataset.id !== dragSrcId) card.classList.add('drag-over');
+                        };
+                        touchEndHandler = (ev) => {
+                            if (!touchDragActive) return;
+                            touchDragActive = false;
+                            el.classList.remove('dragging');
+                            const touch  = ev.changedTouches[0];
+                            const target = document.elementFromPoint(touch.clientX, touch.clientY);
+                            const card   = target && target.closest('.activity[data-id]');
+                            document.querySelectorAll('.activity.drag-over').forEach(x => x.classList.remove('drag-over'));
+                            document.removeEventListener('touchmove', touchMoveHandler);
+                            document.removeEventListener('touchend', touchEndHandler);
+                            document.removeEventListener('touchcancel', touchEndHandler);
+                            if (!card) return;
+                            const targetId  = card.dataset.id;
+                            const targetDay = parseInt(card.dataset.day);
+                            if (dragSrcId === targetId) return;
+                            if (dragSrcDay !== targetDay) { showSuccessMessage('只能在同一天內排序'); return; }
+                            reorderActivity(dragSrcId, targetId, dragSrcDay);
+                        };
+                        document.addEventListener('touchmove', touchMoveHandler, { passive: false });
+                        document.addEventListener('touchend',  touchEndHandler,  { passive: true });
+                        document.addEventListener('touchcancel', touchEndHandler, { passive: true });
                     }, 400);
                 }, { passive: true });
 
-                handle.addEventListener('touchmove', e => {
-                    clearTimeout(longPressTimer);
-                    if (!touchDragActive) return;
-                    e.preventDefault();
-                    const touch  = e.touches[0];
-                    const target = document.elementFromPoint(touch.clientX, touch.clientY);
-                    const card   = target && target.closest('.activity[data-id]');
-                    document.querySelectorAll('.activity.drag-over').forEach(x => x.classList.remove('drag-over'));
-                    if (card && card.dataset.id !== dragSrcId) card.classList.add('drag-over');
-                }, { passive: false });
-
-                handle.addEventListener('touchend', e => {
-                    clearTimeout(longPressTimer);
-                    if (!touchDragActive) return;
-                    touchDragActive = false;
-                    el.classList.remove('dragging');
-                    const touch  = e.changedTouches[0];
-                    const target = document.elementFromPoint(touch.clientX, touch.clientY);
-                    const card   = target && target.closest('.activity[data-id]');
-                    document.querySelectorAll('.activity.drag-over').forEach(x => x.classList.remove('drag-over'));
-                    if (!card) return;
-                    const targetId  = card.dataset.id;
-                    const targetDay = parseInt(card.dataset.day);
-                    if (dragSrcId === targetId) return;
-                    if (dragSrcDay !== targetDay) { showSuccessMessage('只能在同一天內排序'); return; }
-                    reorderActivity(dragSrcId, targetId, dragSrcDay);
-                }, { passive: true });
-
-                handle.addEventListener('touchcancel', () => {
-                    clearTimeout(longPressTimer);
-                    touchDragActive = false;
-                    el.classList.remove('dragging');
-                });
+                // 取消長按計時（手指太快移開）
+                handle.addEventListener('touchmove', () => clearTimeout(longPressTimer), { passive: true });
+                handle.addEventListener('touchend',  () => clearTimeout(longPressTimer), { passive: true });
             });
         }
 
