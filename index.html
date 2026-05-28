@@ -10,14 +10,14 @@
 
     <!-- Open Graph：控制 LINE / FB / iMessage 連結預覽 -->
     <meta property="og:title"       content="🇯🇵 沖繩之旅 2026">
-    <meta property="og:description" content="2026.07.16 - 07.20｜5日4夜｜">
+    <meta property="og:description" content="2026.07.16 - 07.20｜5日4夜｜共同編輯行程">
     <meta property="og:type"        content="website">
     <meta property="og:url"         content="https://te495.github.io/trip-plans/">
-    <meta property="og:image"       content="https://static.wixstatic.com/media/d1d746_a8e37306f2ad446db326b7ea25f9b422~mv2.webp">
+    <meta property="og:image"       content="https://images.unsplash.com/photo-1528360983277-13d401cdc186?w=1200&q=80">
     <meta property="og:image:width"  content="1200">
     <meta property="og:image:height" content="630">
     <meta property="og:locale"      content="zh_TW">
-    <meta name="description"        content="2026.07.16 - 07.20｜5日4夜｜">
+    <meta name="description"        content="2026.07.16 - 07.20｜5日4夜｜共同編輯行程">
 
 
 
@@ -1825,11 +1825,6 @@
                 <div class="form-group">
                     <label>選擇日期</label>
                     <select id="activityDay" style="width: 100%; padding: 10px; border: 2px solid var(--border); border-radius: 6px;">
-                        <option value="1">Day 1</option>
-                        <option value="2">Day 2</option>
-                        <option value="3">Day 3</option>
-                        <option value="4">Day 4</option>
-                        <option value="5">Day 5</option>
                     </select>
                 </div>
                 <div class="form-group">
@@ -2576,6 +2571,7 @@
             }
             // 每個 activity 補 images 欄位
             appData.activities.forEach(a => {
+                if (a.id != null) a.id = String(a.id);
                 if (!a.images) a.images = [];
                 if (!a.transport) a.transport = { type: '', duration: '' };
             });
@@ -2584,12 +2580,16 @@
             if (!appData.extraPlaces || !Array.isArray(appData.extraPlaces)) {
                 appData.extraPlaces = [];
             }
+            appData.extraPlaces.forEach(p => {
+                if (p.id != null) p.id = String(p.id);
+            });
 
             // expenses
             if (!appData.expenses || !Array.isArray(appData.expenses)) {
                 appData.expenses = D.expenses.map(e => ({ ...e }));
             }
             appData.expenses.forEach(e => {
+                if (e.id != null) e.id = String(e.id);
                 if (!e.category) e.category = '其他';
             });
 
@@ -2597,6 +2597,9 @@
             if (!appData.checklists || !Array.isArray(appData.checklists)) {
                 appData.checklists = D.checklists.map(c => ({ ...c }));
             }
+            appData.checklists.forEach(c => {
+                if (c.id != null) c.id = String(c.id);
+            });
 
             // info
             if (!appData.info) {
@@ -2627,6 +2630,12 @@
                     } else {
                         appData.info.hotels = D.info.hotels.map(h => ({ ...h }));
                     }
+                }
+                // hotels id 統一為字串
+                if (Array.isArray(appData.info.hotels)) {
+                    appData.info.hotels.forEach(h => {
+                        if (h.id != null) h.id = String(h.id);
+                    });
                 }
             }
 
@@ -2921,7 +2930,7 @@
 
         // ── 通用 ID 產生器 ──
         function generateId() {
-            return Date.now() + Math.floor(Math.random() * 10000);
+            return `${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
         }
 
         // ── 通用刪除函數 ──
@@ -2967,6 +2976,7 @@
             catch(e) { console.error('renderItinerary error:', e); showRenderError('行程'); }
         }
         function _renderItinerary() {
+            const scrollY = window.scrollY; // render 前記住捲動位置
             const container = document.getElementById('itinerary-list');
             const filterEl  = document.getElementById('itinerary-filter');
             const days = {};
@@ -3047,9 +3057,9 @@
                     html += `
                         <div class="activity" data-id="${a.id}" data-day="${a.day}">
                             <div class="sort-btns">
-                                <button class="sort-btn" onclick="moveActivity(${a.id},${a.day},-1)"
+                                <button class="sort-btn" onclick="moveActivity('${a.id}',${a.day},-1)\"
                                     ${idx === 0 ? 'disabled' : ''} title="往上移">▲</button>
-                                <button class="sort-btn" onclick="moveActivity(${a.id},${a.day},1)"
+                                <button class="sort-btn" onclick="moveActivity('${a.id}',${a.day},1)\"
                                     ${idx === activities.length - 1 ? 'disabled' : ''} title="往下移">▼</button>
                             </div>
                             <div class="activity-header">
@@ -3072,8 +3082,8 @@
                                         <div class="activity-thumb-add" onclick="triggerActivityImgUpload(${a.id})" title="新增圖片">📎</div>
                                     </div>`}
                                     <div class="activity-buttons">
-                                        <button class="btn-sm btn-edit"   onclick="openItem('activity', ${a.id})">✏️ 編輯</button>
-                                        <button class="btn-sm btn-delete" onclick="deleteItem('activity', ${a.id})">🗑️ 刪除</button>
+                                        <button class="btn-sm btn-edit"   onclick="openItem('activity', '${a.id}')\">✏️ 編輯</button>
+                                        <button class="btn-sm btn-delete" onclick="deleteItem('activity', '${a.id}')\">🗑️ 刪除</button>
                                     </div>
                                 </div>
                             </div>
@@ -3096,6 +3106,7 @@
             }
             container.innerHTML = html;
             bindDragEvents();
+            requestAnimationFrame(() => window.scrollTo(0, scrollY)); // 還原捲動位置
         }
         // ── 圓餅圖顏色 ──
         const CATEGORY_COLORS = {
@@ -3138,8 +3149,8 @@
                         </div>
                         <div style="display:flex;align-items:center;gap:8px;">
                             <div class="expense-amount">NT$${expense.amount.toLocaleString()}</div>
-                            <button class="btn-sm btn-edit" onclick="openItem('expense', ${expense.id})">✏️</button>
-                            <button class="btn-sm btn-delete" onclick="deleteItem('expense', ${expense.id})">🗑️</button>
+                            <button class="btn-sm btn-edit" onclick="openItem('expense', '${expense.id}')\">✏️</button>
+                            <button class="btn-sm btn-delete" onclick="deleteItem('expense', '${expense.id}')\">🗑️</button>
                         </div>
                     </div>`;
             });
@@ -3245,11 +3256,11 @@
                 items.forEach(item => {
                     html += `
                         <label class="checklist-item ${item.completed ? 'completed' : ''}">
-                            <input type="checkbox" ${item.completed ? 'checked' : ''} onchange="toggleChecklistItem(${item.id})">
+                            <input type="checkbox" ${item.completed ? 'checked' : ''} onchange="toggleChecklistItem('${item.id}')\">
                             <span class="checklist-label">${escapeHtml(item.content)}</span>
                             <div class="checklist-actions">
-                                <button type="button" class="btn-sm btn-edit" onclick="openItem('checklist', ${item.id})">✏️</button>
-                                <button type="button" class="btn-sm btn-delete" onclick="deleteItem('checklist', ${item.id})">🗑️</button>
+                                <button type="button" class="btn-sm btn-edit" onclick="openItem('checklist', '${item.id}')\">✏️</button>
+                                <button type="button" class="btn-sm btn-delete" onclick="deleteItem('checklist', '${item.id}')\">🗑️</button>
                             </div>
                         </label>
                     `;
@@ -3303,8 +3314,8 @@
                             <div style="font-size:14px;font-weight:800;color:var(--dark);flex:1;">${escapeHtml(h.name)}</div>
                             <div style="display:flex;gap:6px;flex-shrink:0;margin-left:8px;">
                                 ${safeUrl(h.mapUrl) ? `<a href="${escapeHtml(h.mapUrl)}" target="_blank" rel="noopener" style="background:var(--light);border:1px solid var(--border);border-radius:8px;padding:4px 8px;font-size:11px;font-weight:700;color:var(--secondary);text-decoration:none;">🗺️ 地圖</a>` : ''}
-                                <button class="btn-sm btn-edit" onclick="openItem('hotel', ${h.id})">✏️</button>
-                                <button class="btn-sm btn-delete" onclick="deleteItem('hotel', ${h.id})">🗑️</button>
+                                <button class="btn-sm btn-edit" onclick="openItem('hotel', '${h.id}')\">✏️</button>
+                                <button class="btn-sm btn-delete" onclick="deleteItem('hotel', '${h.id}')\">🗑️</button>
                             </div>
                         </div>
                         <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;font-size:12px;">
@@ -3542,7 +3553,7 @@
                     el.setAttribute('draggable', 'true');
                 });
                 el.addEventListener('dragstart', e => {
-                    dragSrcId  = parseInt(el.dataset.id);
+                    dragSrcId  = el.dataset.id;
                     dragSrcDay = parseInt(el.dataset.day);
                     el.classList.add('dragging');
                     e.dataTransfer.effectAllowed = 'move';
@@ -3554,13 +3565,13 @@
                 });
                 el.addEventListener('dragover', e => {
                     e.preventDefault();
-                    if (parseInt(el.dataset.id) !== dragSrcId) el.classList.add('drag-over');
+                    if (el.dataset.id !== dragSrcId) el.classList.add('drag-over');
                 });
                 el.addEventListener('dragleave', () => el.classList.remove('drag-over'));
                 el.addEventListener('drop', e => {
                     e.preventDefault();
                     el.classList.remove('drag-over');
-                    const targetId  = parseInt(el.dataset.id);
+                    const targetId  = el.dataset.id;
                     const targetDay = parseInt(el.dataset.day);
                     if (dragSrcId === targetId) return;
                     if (dragSrcDay !== targetDay) {
@@ -3574,7 +3585,7 @@
                 handle.addEventListener('touchstart', e => {
                     longPressTimer = setTimeout(() => {
                         touchDragActive = true;
-                        dragSrcId  = parseInt(el.dataset.id);
+                        dragSrcId  = el.dataset.id;
                         dragSrcDay = parseInt(el.dataset.day);
                         el.classList.add('dragging');
                         navigator.vibrate && navigator.vibrate(40);
@@ -3589,7 +3600,7 @@
                     const target = document.elementFromPoint(touch.clientX, touch.clientY);
                     const card   = target && target.closest('.activity[data-id]');
                     document.querySelectorAll('.activity.drag-over').forEach(x => x.classList.remove('drag-over'));
-                    if (card && parseInt(card.dataset.id) !== dragSrcId) card.classList.add('drag-over');
+                    if (card && card.dataset.id !== dragSrcId) card.classList.add('drag-over');
                 }, { passive: false });
 
                 handle.addEventListener('touchend', e => {
@@ -3602,7 +3613,7 @@
                     const card   = target && target.closest('.activity[data-id]');
                     document.querySelectorAll('.activity.drag-over').forEach(x => x.classList.remove('drag-over'));
                     if (!card) return;
-                    const targetId  = parseInt(card.dataset.id);
+                    const targetId  = card.dataset.id;
                     const targetDay = parseInt(card.dataset.day);
                     if (dragSrcId === targetId) return;
                     if (dragSrcDay !== targetDay) { showSuccessMessage('只能在同一天內排序'); return; }
@@ -3995,8 +4006,8 @@
             const isExtra = p._type === 'extra';
             const editBtns = isExtra
                 ? `<div class="map-edit-btns" style="display:flex;flex-direction:column;gap:3px;flex-shrink:0;margin-left:6px;">
-                    <button class="btn-sm btn-edit" style="padding:2px 6px;font-size:10px;" onclick="event.preventDefault();event.stopPropagation();openItem('place', ${p.id})">✏️</button>
-                    <button class="btn-sm btn-delete" style="padding:2px 6px;font-size:10px;" onclick="event.preventDefault();event.stopPropagation();deleteItem('place', ${p.id})">🗑️</button>
+                    <button class="btn-sm btn-edit" style="padding:2px 6px;font-size:10px;" onclick="event.preventDefault();event.stopPropagation();openItem('place', '${p.id}')\">✏️</button>
+                    <button class="btn-sm btn-delete" style="padding:2px 6px;font-size:10px;" onclick="event.preventDefault();event.stopPropagation();deleteItem('place', '${p.id}')\">🗑️</button>
                   </div>`
                 : '';
             return `
@@ -4413,7 +4424,7 @@
             setSyncStatus('syncing', '同步中…');
             ignoreNextSnapshot = true;
             db.ref(`rooms/${currentRoom}/data`).set(appData)
-                .then(() => { setSyncStatus('connected', '已同步'); ignoreNextSnapshot = false; })
+                .then(() => setSyncStatus('connected', '已同步'))
                 .catch(() => { setSyncStatus('error', '同步失敗'); ignoreNextSnapshot = false; });
         }
     };
