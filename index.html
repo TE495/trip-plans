@@ -1712,235 +1712,6 @@
             to   { opacity: 0; transform: translateY(10px); }
         }
 
-        /* ── 浮動目錄 ── */
-        #tocFab {
-            position: fixed;
-            right: 18px;
-            bottom: 78px;
-            width: 48px;
-            height: 48px;
-            border-radius: 50%;
-            background: var(--primary);
-            color: white;
-            border: none;
-            font-size: 22px;
-            box-shadow: 0 4px 16px rgba(0,168,168,0.4);
-            cursor: pointer;
-            z-index: 900;
-            display: none;
-            transition: transform 0.2s;
-            align-items: center;
-            justify-content: center;
-            line-height: 1;
-            padding: 0;
-        }
-        #tocFab:hover { transform: scale(1.08); }
-        #tocFab:active { transform: scale(0.95); }
-        body[data-tab="itinerary"] #tocFab { display: flex; }
-
-        #tocOverlay {
-            position: fixed;
-            inset: 0;
-            background: rgba(0,0,0,0.4);
-            z-index: 1100;
-            display: none;
-            animation: fadeIn 0.2s ease;
-        }
-        #tocOverlay.active { display: block; }
-
-        #tocPanel {
-            position: absolute;
-            right: 0;
-            top: 0;
-            bottom: 0;
-            width: 80%;
-            max-width: 320px;
-            background: white;
-            box-shadow: -4px 0 24px rgba(0,0,0,0.2);
-            display: flex;
-            flex-direction: column;
-            animation: tocSlideIn 0.25s ease;
-        }
-        @keyframes tocSlideIn {
-            from { transform: translateX(100%); }
-            to   { transform: translateX(0); }
-        }
-
-        .toc-header {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            padding: 18px 20px;
-            font-size: 16px;
-            font-weight: 800;
-            color: var(--dark);
-            border-bottom: 1.5px solid var(--border);
-            flex-shrink: 0;
-        }
-        .toc-close {
-            background: none;
-            border: none;
-            font-size: 18px;
-            color: #999;
-            cursor: pointer;
-            padding: 4px 8px;
-        }
-
-        #tocList {
-            overflow-y: auto;
-            padding: 8px;
-            flex: 1;
-        }
-        .toc-item {
-            padding: 12px 14px;
-            border-radius: 10px;
-            cursor: pointer;
-            transition: background 0.15s;
-            margin-bottom: 4px;
-        }
-        .toc-item:hover { background: rgba(0,168,168,0.07); }
-        .toc-item.today {
-            background: rgba(0,168,168,0.1);
-            border: 1.5px solid var(--primary);
-        }
-        .toc-item-title {
-            font-size: 14px;
-            font-weight: 700;
-            color: var(--dark);
-            margin-bottom: 3px;
-        }
-        .toc-item-meta {
-            font-size: 11px;
-            color: #999;
-        }
-        .toc-today-btn {
-            width: 100%;
-            padding: 12px;
-            background: var(--primary);
-            color: white;
-            border: none;
-            border-radius: 10px;
-            font-size: 14px;
-            font-weight: 700;
-            cursor: pointer;
-            margin-bottom: 10px;
-        }
-        .toc-today-btn:active { opacity: 0.85; }
-
-        /* ── 房間管理面板 ── */
-        .room-mgr-overlay {
-            position: fixed;
-            inset: 0;
-            background: rgba(0,0,0,0.4);
-            z-index: 1200;
-            display: none;
-            animation: fadeIn 0.2s ease;
-        }
-        .room-mgr-overlay.active { display: flex; align-items: flex-end; justify-content: center; }
-
-        .room-mgr-panel {
-            background: white;
-            width: 100%;
-            max-width: 480px;
-            max-height: 85vh;
-            border-radius: 20px 20px 0 0;
-            display: flex;
-            flex-direction: column;
-            animation: sheetSlideUp 0.28s ease;
-        }
-        @keyframes sheetSlideUp {
-            from { transform: translateY(100%); }
-            to   { transform: translateY(0); }
-        }
-
-        .room-mgr-header {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            padding: 18px 20px;
-            font-size: 17px;
-            font-weight: 800;
-            color: var(--dark);
-            border-bottom: 1.5px solid var(--border);
-            flex-shrink: 0;
-        }
-
-        .room-mgr-list {
-            overflow-y: auto;
-            padding: 12px;
-            flex: 1;
-            min-height: 80px;
-        }
-
-        .room-card {
-            display: flex;
-            align-items: center;
-            background: #f8fffe;
-            border: 1.5px solid var(--border);
-            border-radius: 12px;
-            padding: 4px;
-            margin-bottom: 8px;
-            transition: all 0.15s;
-        }
-        .room-card.current {
-            background: rgba(0,168,168,0.08);
-            border-color: var(--primary);
-        }
-        .room-card-main {
-            display: flex;
-            align-items: center;
-            gap: 12px;
-            flex: 1;
-            padding: 10px 12px;
-            cursor: pointer;
-            min-width: 0;
-        }
-        .room-card-emoji {
-            font-size: 26px;
-            flex-shrink: 0;
-        }
-        .room-card-info { min-width: 0; flex: 1; }
-        .room-card-title {
-            font-size: 14px;
-            font-weight: 700;
-            color: var(--dark);
-            white-space: nowrap;
-            overflow: hidden;
-            text-overflow: ellipsis;
-        }
-        .room-current-badge {
-            font-size: 10px;
-            font-weight: 700;
-            color: white;
-            background: var(--primary);
-            padding: 1px 7px;
-            border-radius: 8px;
-            vertical-align: middle;
-        }
-        .room-card-meta {
-            font-size: 11px;
-            color: #999;
-            margin-top: 2px;
-        }
-        .room-card-del {
-            background: none;
-            border: none;
-            font-size: 16px;
-            cursor: pointer;
-            padding: 10px 12px;
-            flex-shrink: 0;
-            opacity: 0.6;
-            border-radius: 8px;
-        }
-        .room-card-del:hover { opacity: 1; background: rgba(255,80,80,0.1); }
-
-        .room-mgr-footer {
-            padding: 14px 16px calc(16px + env(safe-area-inset-bottom));
-            border-top: 1.5px solid var(--border);
-            flex-shrink: 0;
-        }
-        .room-mgr-join { margin-top: 4px; }
-
         /* ============================================================
            Animations - 動畫
            ============================================================ */
@@ -1991,7 +1762,7 @@
         }
     </style>
 </head>
-<body data-tab="itinerary">
+<body>
     <div class="container">
         <header id="mainHeader">
             <button class="header-img-btn" onclick="openBannerModal()">🖼️ 封面</button>
@@ -2005,7 +1776,7 @@
                     <span id="syncLabel">未連線</span>
                 </div>
                 <button class="sync-btn" id="syncRetryBtn" style="display:none;" onclick="retryConnection()">重試</button>
-                <button class="sync-btn" onclick="openRoomManager()">換房間</button>
+                <button class="sync-btn" onclick="showRoomModal()">換房間</button>
                 <button class="sync-btn" onclick="shareRoom()">邀請</button>
                 <button class="sync-btn" onclick="shareReadonly()">🔗分享連結</button>
             </div>
@@ -2045,18 +1816,6 @@
             </div>
             <div id="itinerary-filter"></div>
             <div id="itinerary-list"></div>
-        </div>
-
-        <!-- 浮動目錄按鈕（僅行程頁顯示）-->
-        <button id="tocFab" onclick="toggleToc()" title="行程目錄">🗓️</button>
-        <div id="tocOverlay" onclick="if(event.target===this)toggleToc()">
-            <div id="tocPanel">
-                <div class="toc-header">
-                    <span>🗓️ 行程目錄</span>
-                    <button onclick="toggleToc()" class="toc-close">✕</button>
-                </div>
-                <div id="tocList"></div>
-            </div>
         </div>
 
         <!-- 費用標籤頁 -->
@@ -2969,7 +2728,6 @@
 
         function init() {
             migrateData();
-            document.body.setAttribute('data-tab', 'itinerary'); // 預設行程頁
             initBanner();
             renderTripHeader();
             renderItinerary();
@@ -2983,7 +2741,6 @@
             document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
             document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
             document.getElementById(tabName).classList.add('active');
-            document.body.setAttribute('data-tab', tabName); // 控制浮動目錄顯示
             // 優先用傳入的 el，否則找對應的 tab button
             const tabBtn = el || document.querySelector(`.tab[onclick*="'${tabName}'"]`);
             if (tabBtn) tabBtn.classList.add('active');
@@ -3349,7 +3106,7 @@
 
                 // ── Day header ──
                 html += `
-                <div class="day-card" id="day-card-${day}">
+                <div class="day-card">
                     <div class="day-header">
                         <span class="day-badge${isToday ? ' today' : ''}">
                             ${isToday ? '📍 今天' : `Day ${day}`}
@@ -3399,12 +3156,12 @@
                                     <div class="activity-images">
                                         ${a.images.map((img, i) => `
                                             <img class="activity-thumb" src="${img}" alt=""
-                                                onclick="openLightbox('${a.id}', ${i})">
+                                                onclick="openLightbox(${a.id}, ${i})">
                                         `).join('')}
-                                        <div class="activity-thumb-add" onclick="triggerActivityImgUpload('${a.id}')" title="新增圖片">＋</div>
+                                        <div class="activity-thumb-add" onclick="triggerActivityImgUpload(${a.id})" title="新增圖片">＋</div>
                                     </div>` : `
                                     <div class="activity-images">
-                                        <div class="activity-thumb-add" onclick="triggerActivityImgUpload('${a.id}')" title="新增圖片">📎</div>
+                                        <div class="activity-thumb-add" onclick="triggerActivityImgUpload(${a.id})" title="新增圖片">📎</div>
                                     </div>`}
                                     <div class="activity-buttons">
                                         <button class="btn-sm btn-edit"   onclick="openItem('activity', '${a.id}')\">✏️ 編輯</button>
@@ -4333,66 +4090,6 @@
             document.getElementById('itinerary-list').scrollIntoView({ behavior: 'smooth', block: 'start' });
         }
 
-        // ── 浮動目錄 ──
-        function toggleToc() {
-            const overlay = document.getElementById('tocOverlay');
-            if (overlay.classList.contains('active')) {
-                overlay.classList.remove('active');
-            } else {
-                renderToc();
-                overlay.classList.add('active');
-            }
-        }
-
-        function renderToc() {
-            const numDays = getTripDays();
-            const startStr = appData.trip.startDate;
-            const todayStr = new Date().toISOString().slice(0, 10);
-            let html = '';
-
-            // 計算今天是第幾天
-            let todayDayNum = null;
-            if (startStr) {
-                for (let d = 1; d <= numDays; d++) {
-                    const dt = new Date(startStr);
-                    dt.setDate(dt.getDate() + d - 1);
-                    if (dt.toISOString().slice(0, 10) === todayStr) { todayDayNum = d; break; }
-                }
-            }
-
-            // 跳到今天按鈕（旅行期間才顯示）
-            if (todayDayNum !== null) {
-                html += `<button class="toc-today-btn" onclick="scrollToDay(${todayDayNum})">📍 跳到今天（Day ${todayDayNum}）</button>`;
-            }
-
-            // 各 Day 列表
-            for (let d = 1; d <= numDays; d++) {
-                const dt = appData.dayTitles[d] || { emoji: '📅', title: `Day ${d}` };
-                const count = appData.activities.filter(a => a.day === d).length;
-                const dateStr = getDayDateStr(d);
-                const isToday = (d === todayDayNum);
-                html += `
-                    <div class="toc-item ${isToday ? 'today' : ''}" onclick="scrollToDay(${d})">
-                        <div class="toc-item-title">${isToday ? '📍 ' : ''}Day ${d} ${escapeHtml(dt.emoji)} ${escapeHtml(dt.title)}</div>
-                        <div class="toc-item-meta">${dateStr} · ${count} 個活動</div>
-                    </div>`;
-            }
-            document.getElementById('tocList').innerHTML = html;
-        }
-
-        function scrollToDay(day) {
-            // 如果目前是篩選單一天的模式，先切回全部
-            if (currentItineraryDay !== 'all') {
-                currentItineraryDay = 'all';
-                renderItinerary();
-            }
-            toggleToc(); // 關閉目錄
-            setTimeout(() => {
-                const card = document.getElementById(`day-card-${day}`);
-                if (card) card.scrollIntoView({ behavior: 'smooth', block: 'start' });
-            }, 100);
-        }
-
         let currentMapDay = 'all';
         // editingState.editingPlaceId 統一管理
 
@@ -4655,28 +4352,6 @@
     </script>
 
     <!-- 房間碼 Modal -->
-    <!-- 房間管理面板 -->
-    <div id="roomManagerOverlay" class="room-mgr-overlay" onclick="if(event.target===this)closeRoomManager()">
-        <div class="room-mgr-panel">
-            <div class="room-mgr-header">
-                <span>🧳 我的旅程</span>
-                <button class="toc-close" onclick="closeRoomManager()">✕</button>
-            </div>
-            <div id="roomManagerList" class="room-mgr-list"></div>
-            <div class="room-mgr-footer">
-                <button class="btn-save" style="width:100%;margin-bottom:10px;" onclick="createNewRoomFromManager()">
-                    ➕ 建立新行程
-                </button>
-                <div class="room-mgr-join">
-                    <input class="room-input" id="roomManagerJoinInput" maxlength="6" placeholder="輸入 6 碼房間碼加入"
-                        oninput="this.value=this.value.toUpperCase().replace(/[^A-Z0-9]/g,'')"
-                        style="margin-bottom:8px;">
-                    <button class="btn-secondary" style="width:100%;" onclick="joinRoomFromManager()">🔗 用房間碼加入</button>
-                </div>
-            </div>
-        </div>
-    </div>
-
     <div id="roomModalOverlay" class="room-modal-overlay" style="display:none;">
         <div class="room-modal">
             <h2>🔗 共同編輯</h2>
@@ -4780,106 +4455,6 @@
         return Array.from({ length: 6 }, () => chars[Math.floor(Math.random() * chars.length)]).join('');
     }
 
-    // ── 房間清單管理（localStorage: okinawaRooms）──
-    function getSavedRooms() {
-        try {
-            const raw = localStorage.getItem('okinawaRooms');
-            return raw ? JSON.parse(raw) : [];
-        } catch (e) { return []; }
-    }
-
-    function saveSavedRooms(rooms) {
-        try { localStorage.setItem('okinawaRooms', JSON.stringify(rooms)); } catch (e) {}
-    }
-
-    // 加入或更新一筆房間記錄
-    function upsertRoom(code, title, emoji) {
-        if (!code || _isReadonly) return;
-        let rooms = getSavedRooms();
-        const idx = rooms.findIndex(r => r.code === code);
-        const entry = {
-            code,
-            title: title || '未命名行程',
-            emoji: emoji || '🌏',
-            lastVisited: Date.now(),
-        };
-        if (idx > -1) rooms[idx] = { ...rooms[idx], ...entry };
-        else rooms.push(entry);
-        // 依最近造訪排序
-        rooms.sort((a, b) => (b.lastVisited || 0) - (a.lastVisited || 0));
-        saveSavedRooms(rooms);
-    }
-
-    function removeRoom(code) {
-        let rooms = getSavedRooms().filter(r => r.code !== code);
-        saveSavedRooms(rooms);
-        renderRoomManager();
-    }
-
-    // ── 房間管理面板 ──
-    function openRoomManager() {
-        renderRoomManager();
-        document.getElementById('roomManagerOverlay').classList.add('active');
-    }
-    function closeRoomManager() {
-        document.getElementById('roomManagerOverlay').classList.remove('active');
-    }
-
-    function renderRoomManager() {
-        const rooms = getSavedRooms();
-        const listEl = document.getElementById('roomManagerList');
-        if (!rooms.length) {
-            listEl.innerHTML = `<div style="text-align:center;color:#aaa;padding:30px 10px;font-size:13px;">還沒有任何旅程<br>點下方「建立新行程」開始</div>`;
-            return;
-        }
-        listEl.innerHTML = rooms.map(r => {
-            const isCurrent = r.code === currentRoom;
-            const dateStr = r.lastVisited
-                ? new Date(r.lastVisited).toLocaleDateString('zh-TW', { month: 'numeric', day: 'numeric' })
-                : '';
-            return `
-                <div class="room-card ${isCurrent ? 'current' : ''}">
-                    <div class="room-card-main" onclick="switchToRoom('${r.code}')">
-                        <div class="room-card-emoji">${escapeHtml(r.emoji)}</div>
-                        <div class="room-card-info">
-                            <div class="room-card-title">${escapeHtml(r.title)}${isCurrent ? ' <span class="room-current-badge">使用中</span>' : ''}</div>
-                            <div class="room-card-meta">房間碼 ${escapeHtml(r.code)}${dateStr ? ` · 最近 ${dateStr}` : ''}</div>
-                        </div>
-                    </div>
-                    <button class="room-card-del" onclick="confirmRemoveRoom('${r.code}', '${escapeHtml(r.title)}')" title="移除">🗑️</button>
-                </div>`;
-        }).join('');
-    }
-
-    function switchToRoom(code) {
-        if (code === currentRoom) { closeRoomManager(); return; }
-        closeRoomManager();
-        joinRoom(code);
-    }
-
-    function confirmRemoveRoom(code, title) {
-        if (confirm(`確定要從清單移除「${title}」？\n（只是從這個裝置的清單移除，雲端資料不受影響，之後仍可用房間碼重新加入）`)) {
-            removeRoom(code);
-        }
-    }
-
-    function createNewRoomFromManager() {
-        const code = genCode();
-        closeRoomManager();
-        appData = cloneDefault();
-        joinRoom(code);
-        showSuccessMessage(`已建立新行程 ${code}`);
-    }
-
-    function joinRoomFromManager() {
-        const input = document.getElementById('roomManagerJoinInput');
-        const code = input.value.trim().toUpperCase();
-        if (code.length !== 6) { alert('請輸入 6 碼房間碼'); return; }
-        input.value = '';
-        closeRoomManager();
-        joinRoom(code);
-    }
-
     // ── 顯示房間 Modal ──
     function showRoomModal() {
         const code = genCode();
@@ -4944,34 +4519,6 @@
             }
         }, 20000);
 
-        // ── Safari ITP 對策：先用 once() 走 HTTP 拉一次資料 ──
-        // WebSocket 握手在 Safari 可能很慢，但 once() 走 REST 通常較快，
-        // 先把資料顯示出來，避免一直停在「連線中」
-        ref.once('value').then(snap => {
-            if (resolved) return; // on() 已先觸發就不重複處理
-            if (snap && snap.exists()) {
-                resolved = true;
-                clearTimeout(timeoutId);
-                joinRoom._retryCount = 0;
-                try {
-                    appData = snap.val();
-                    migrateData();
-                    if (!document.body.classList.contains('view-mode')) saveStorage('okinawaData', appData);
-                    if (appData.trip) upsertRoom(code, appData.trip.title, appData.trip.emoji);
-                    initBanner();
-                    renderTripHeader();
-                    renderItinerary();
-                    renderExpense();
-                    renderChecklist();
-                    renderInfo();
-                    setSyncStatus('connected', '已同步');
-                    firstLoad = false;
-                } catch (e) {
-                    console.error('once render error', e);
-                }
-            }
-        }).catch(() => {}); // 失敗就靠下面的 on() 監聽
-
         fbListener = ref.on('value', snap => {
             resolved = true;
             clearTimeout(timeoutId);
@@ -4987,11 +4534,7 @@
                     }
                     isSyncing = true;
                     ref.set(appData)
-                        .then(() => {
-                            setSyncStatus('connected', '已同步');
-                            isSyncing = false;
-                            if (appData.trip) upsertRoom(code, appData.trip.title, appData.trip.emoji);
-                        })
+                        .then(() => { setSyncStatus('connected', '已同步'); isSyncing = false; })
                         .catch(() => { setSyncStatus('error', '上傳失敗'); isSyncing = false; });
                 }
                 return;
@@ -5009,8 +4552,6 @@
                 appData = snap.val();
                 migrateData();
                 if (!document.body.classList.contains('view-mode')) saveStorage('okinawaData', appData);
-                // 更新房間清單記錄（用行程名稱和 emoji）
-                if (appData.trip) upsertRoom(code, appData.trip.title, appData.trip.emoji);
                 initBanner();
                 renderTripHeader();
                 renderItinerary();
