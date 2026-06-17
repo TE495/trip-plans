@@ -4944,6 +4944,34 @@
             }
         }, 20000);
 
+        // ── Safari ITP 對策：先用 once() 走 HTTP 拉一次資料 ──
+        // WebSocket 握手在 Safari 可能很慢，但 once() 走 REST 通常較快，
+        // 先把資料顯示出來，避免一直停在「連線中」
+        ref.once('value').then(snap => {
+            if (resolved) return; // on() 已先觸發就不重複處理
+            if (snap && snap.exists()) {
+                resolved = true;
+                clearTimeout(timeoutId);
+                joinRoom._retryCount = 0;
+                try {
+                    appData = snap.val();
+                    migrateData();
+                    if (!document.body.classList.contains('view-mode')) saveStorage('okinawaData', appData);
+                    if (appData.trip) upsertRoom(code, appData.trip.title, appData.trip.emoji);
+                    initBanner();
+                    renderTripHeader();
+                    renderItinerary();
+                    renderExpense();
+                    renderChecklist();
+                    renderInfo();
+                    setSyncStatus('connected', '已同步');
+                    firstLoad = false;
+                } catch (e) {
+                    console.error('once render error', e);
+                }
+            }
+        }).catch(() => {}); // 失敗就靠下面的 on() 監聽
+
         fbListener = ref.on('value', snap => {
             resolved = true;
             clearTimeout(timeoutId);
