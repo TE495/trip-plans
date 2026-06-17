@@ -1827,6 +1827,120 @@
         }
         .toc-today-btn:active { opacity: 0.85; }
 
+        /* ── 房間管理面板 ── */
+        .room-mgr-overlay {
+            position: fixed;
+            inset: 0;
+            background: rgba(0,0,0,0.4);
+            z-index: 1200;
+            display: none;
+            animation: fadeIn 0.2s ease;
+        }
+        .room-mgr-overlay.active { display: flex; align-items: flex-end; justify-content: center; }
+
+        .room-mgr-panel {
+            background: white;
+            width: 100%;
+            max-width: 480px;
+            max-height: 85vh;
+            border-radius: 20px 20px 0 0;
+            display: flex;
+            flex-direction: column;
+            animation: sheetSlideUp 0.28s ease;
+        }
+        @keyframes sheetSlideUp {
+            from { transform: translateY(100%); }
+            to   { transform: translateY(0); }
+        }
+
+        .room-mgr-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 18px 20px;
+            font-size: 17px;
+            font-weight: 800;
+            color: var(--dark);
+            border-bottom: 1.5px solid var(--border);
+            flex-shrink: 0;
+        }
+
+        .room-mgr-list {
+            overflow-y: auto;
+            padding: 12px;
+            flex: 1;
+            min-height: 80px;
+        }
+
+        .room-card {
+            display: flex;
+            align-items: center;
+            background: #f8fffe;
+            border: 1.5px solid var(--border);
+            border-radius: 12px;
+            padding: 4px;
+            margin-bottom: 8px;
+            transition: all 0.15s;
+        }
+        .room-card.current {
+            background: rgba(0,168,168,0.08);
+            border-color: var(--primary);
+        }
+        .room-card-main {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            flex: 1;
+            padding: 10px 12px;
+            cursor: pointer;
+            min-width: 0;
+        }
+        .room-card-emoji {
+            font-size: 26px;
+            flex-shrink: 0;
+        }
+        .room-card-info { min-width: 0; flex: 1; }
+        .room-card-title {
+            font-size: 14px;
+            font-weight: 700;
+            color: var(--dark);
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        .room-current-badge {
+            font-size: 10px;
+            font-weight: 700;
+            color: white;
+            background: var(--primary);
+            padding: 1px 7px;
+            border-radius: 8px;
+            vertical-align: middle;
+        }
+        .room-card-meta {
+            font-size: 11px;
+            color: #999;
+            margin-top: 2px;
+        }
+        .room-card-del {
+            background: none;
+            border: none;
+            font-size: 16px;
+            cursor: pointer;
+            padding: 10px 12px;
+            flex-shrink: 0;
+            opacity: 0.6;
+            border-radius: 8px;
+        }
+        .room-card-del:hover { opacity: 1; background: rgba(255,80,80,0.1); }
+
+        .room-mgr-footer {
+            padding: 14px 16px calc(16px + env(safe-area-inset-bottom));
+            border-top: 1.5px solid var(--border);
+            flex-shrink: 0;
+        }
+        .room-mgr-join { margin-top: 4px; }
+
         /* ============================================================
            Animations - 動畫
            ============================================================ */
@@ -1891,7 +2005,7 @@
                     <span id="syncLabel">未連線</span>
                 </div>
                 <button class="sync-btn" id="syncRetryBtn" style="display:none;" onclick="retryConnection()">重試</button>
-                <button class="sync-btn" onclick="showRoomModal()">換房間</button>
+                <button class="sync-btn" onclick="openRoomManager()">換房間</button>
                 <button class="sync-btn" onclick="shareRoom()">邀請</button>
                 <button class="sync-btn" onclick="shareReadonly()">🔗分享連結</button>
             </div>
@@ -4541,6 +4655,28 @@
     </script>
 
     <!-- 房間碼 Modal -->
+    <!-- 房間管理面板 -->
+    <div id="roomManagerOverlay" class="room-mgr-overlay" onclick="if(event.target===this)closeRoomManager()">
+        <div class="room-mgr-panel">
+            <div class="room-mgr-header">
+                <span>🧳 我的旅程</span>
+                <button class="toc-close" onclick="closeRoomManager()">✕</button>
+            </div>
+            <div id="roomManagerList" class="room-mgr-list"></div>
+            <div class="room-mgr-footer">
+                <button class="btn-save" style="width:100%;margin-bottom:10px;" onclick="createNewRoomFromManager()">
+                    ➕ 建立新行程
+                </button>
+                <div class="room-mgr-join">
+                    <input class="room-input" id="roomManagerJoinInput" maxlength="6" placeholder="輸入 6 碼房間碼加入"
+                        oninput="this.value=this.value.toUpperCase().replace(/[^A-Z0-9]/g,'')"
+                        style="margin-bottom:8px;">
+                    <button class="btn-secondary" style="width:100%;" onclick="joinRoomFromManager()">🔗 用房間碼加入</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <div id="roomModalOverlay" class="room-modal-overlay" style="display:none;">
         <div class="room-modal">
             <h2>🔗 共同編輯</h2>
@@ -4644,6 +4780,106 @@
         return Array.from({ length: 6 }, () => chars[Math.floor(Math.random() * chars.length)]).join('');
     }
 
+    // ── 房間清單管理（localStorage: okinawaRooms）──
+    function getSavedRooms() {
+        try {
+            const raw = localStorage.getItem('okinawaRooms');
+            return raw ? JSON.parse(raw) : [];
+        } catch (e) { return []; }
+    }
+
+    function saveSavedRooms(rooms) {
+        try { localStorage.setItem('okinawaRooms', JSON.stringify(rooms)); } catch (e) {}
+    }
+
+    // 加入或更新一筆房間記錄
+    function upsertRoom(code, title, emoji) {
+        if (!code || _isReadonly) return;
+        let rooms = getSavedRooms();
+        const idx = rooms.findIndex(r => r.code === code);
+        const entry = {
+            code,
+            title: title || '未命名行程',
+            emoji: emoji || '🌏',
+            lastVisited: Date.now(),
+        };
+        if (idx > -1) rooms[idx] = { ...rooms[idx], ...entry };
+        else rooms.push(entry);
+        // 依最近造訪排序
+        rooms.sort((a, b) => (b.lastVisited || 0) - (a.lastVisited || 0));
+        saveSavedRooms(rooms);
+    }
+
+    function removeRoom(code) {
+        let rooms = getSavedRooms().filter(r => r.code !== code);
+        saveSavedRooms(rooms);
+        renderRoomManager();
+    }
+
+    // ── 房間管理面板 ──
+    function openRoomManager() {
+        renderRoomManager();
+        document.getElementById('roomManagerOverlay').classList.add('active');
+    }
+    function closeRoomManager() {
+        document.getElementById('roomManagerOverlay').classList.remove('active');
+    }
+
+    function renderRoomManager() {
+        const rooms = getSavedRooms();
+        const listEl = document.getElementById('roomManagerList');
+        if (!rooms.length) {
+            listEl.innerHTML = `<div style="text-align:center;color:#aaa;padding:30px 10px;font-size:13px;">還沒有任何旅程<br>點下方「建立新行程」開始</div>`;
+            return;
+        }
+        listEl.innerHTML = rooms.map(r => {
+            const isCurrent = r.code === currentRoom;
+            const dateStr = r.lastVisited
+                ? new Date(r.lastVisited).toLocaleDateString('zh-TW', { month: 'numeric', day: 'numeric' })
+                : '';
+            return `
+                <div class="room-card ${isCurrent ? 'current' : ''}">
+                    <div class="room-card-main" onclick="switchToRoom('${r.code}')">
+                        <div class="room-card-emoji">${escapeHtml(r.emoji)}</div>
+                        <div class="room-card-info">
+                            <div class="room-card-title">${escapeHtml(r.title)}${isCurrent ? ' <span class="room-current-badge">使用中</span>' : ''}</div>
+                            <div class="room-card-meta">房間碼 ${escapeHtml(r.code)}${dateStr ? ` · 最近 ${dateStr}` : ''}</div>
+                        </div>
+                    </div>
+                    <button class="room-card-del" onclick="confirmRemoveRoom('${r.code}', '${escapeHtml(r.title)}')" title="移除">🗑️</button>
+                </div>`;
+        }).join('');
+    }
+
+    function switchToRoom(code) {
+        if (code === currentRoom) { closeRoomManager(); return; }
+        closeRoomManager();
+        joinRoom(code);
+    }
+
+    function confirmRemoveRoom(code, title) {
+        if (confirm(`確定要從清單移除「${title}」？\n（只是從這個裝置的清單移除，雲端資料不受影響，之後仍可用房間碼重新加入）`)) {
+            removeRoom(code);
+        }
+    }
+
+    function createNewRoomFromManager() {
+        const code = genCode();
+        closeRoomManager();
+        appData = cloneDefault();
+        joinRoom(code);
+        showSuccessMessage(`已建立新行程 ${code}`);
+    }
+
+    function joinRoomFromManager() {
+        const input = document.getElementById('roomManagerJoinInput');
+        const code = input.value.trim().toUpperCase();
+        if (code.length !== 6) { alert('請輸入 6 碼房間碼'); return; }
+        input.value = '';
+        closeRoomManager();
+        joinRoom(code);
+    }
+
     // ── 顯示房間 Modal ──
     function showRoomModal() {
         const code = genCode();
@@ -4723,7 +4959,11 @@
                     }
                     isSyncing = true;
                     ref.set(appData)
-                        .then(() => { setSyncStatus('connected', '已同步'); isSyncing = false; })
+                        .then(() => {
+                            setSyncStatus('connected', '已同步');
+                            isSyncing = false;
+                            if (appData.trip) upsertRoom(code, appData.trip.title, appData.trip.emoji);
+                        })
                         .catch(() => { setSyncStatus('error', '上傳失敗'); isSyncing = false; });
                 }
                 return;
@@ -4741,6 +4981,8 @@
                 appData = snap.val();
                 migrateData();
                 if (!document.body.classList.contains('view-mode')) saveStorage('okinawaData', appData);
+                // 更新房間清單記錄（用行程名稱和 emoji）
+                if (appData.trip) upsertRoom(code, appData.trip.title, appData.trip.emoji);
                 initBanner();
                 renderTripHeader();
                 renderItinerary();
