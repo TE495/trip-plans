@@ -1,0 +1,4726 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="theme-color" content="#00A8A8">
+    <!-- 版本號：每次上傳 GitHub 時更新，控制快取更新 -->
+    <meta name="version" content="20250521-11">
+    <title>旅遊行程規劃</title>
+
+    <!-- Open Graph：控制 LINE / FB / iMessage 連結預覽 -->
+    <meta property="og:title"       content="🇯🇵 沖繩之旅 2026">
+    <meta property="og:description" content="2026.07.16 - 07.20｜5日4夜｜共同編輯行程">
+    <meta property="og:type"        content="website">
+    <meta property="og:url"         content="https://te495.github.io/trip-plans/">
+    <meta property="og:image"       content="https://images.unsplash.com/photo-1528360983277-13d401cdc186?w=1200&q=80">
+    <meta property="og:image:width"  content="1200">
+    <meta property="og:image:height" content="630">
+    <meta property="og:locale"      content="zh_TW">
+    <meta name="description"        content="2026.07.16 - 07.20｜5日4夜｜共同編輯行程">
+
+
+
+    <!-- Firebase SDK -->
+    <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-database-compat.js"></script>
+    
+    <link rel="manifest" href="manifest.json">
+    <link rel="apple-touch-icon" href="icon-192.png">
+    <link rel="icon" type="image/png" href="icon-192.png">
+    
+    <style>
+        /* ============================================================
+           CSS Variables - 設計系統 Tokens
+           ============================================================ */
+        :root {
+            /* ── 色彩 ── */
+            --primary:    #00A8A8;
+            --secondary:  #20C997;
+            --accent:     #48DBDB;
+            --dark:       #1F4D4D;
+            --light:      #E8F7F7;
+            --border:     #B8E6E6;
+            --success:    #06A77D;
+            --warning:    #FF9F43;
+            --danger:     #FF6B6B;
+
+            /* ── 中性灰階 ── */
+            --gray-100:   #fafafa;
+            --gray-200:   #f0f0f0;
+            --gray-300:   #eef0f0;
+            --gray-400:   #ccc;
+            --gray-500:   #bbb;
+            --gray-600:   #aaa;
+            --gray-700:   #999;
+            --gray-800:   #888;
+
+            /* ── 圓角 ── */
+            --radius-sm:  6px;
+            --radius-md:  10px;
+            --radius-lg:  12px;
+            --radius-xl:  16px;
+            --radius-2xl: 20px;
+
+            /* ── 陰影 ── */
+            --shadow-sm:  0 1px 4px rgba(0,0,0,0.08);
+            --shadow-md:  0 2px 10px rgba(0,0,0,0.055);
+            --shadow-lg:  0 4px 16px rgba(0,168,168,0.13);
+            --shadow-xl:  0 10px 40px rgba(0,0,0,0.1);
+
+            /* ── 動畫 ── */
+            --transition: all 0.2s ease;
+            --transition-fast: all 0.15s;
+        }
+
+        /* ============================================================
+           Reset & Base
+           ============================================================ */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #E8F7F7 0%, #B8E6E6 100%);
+            color: var(--dark);
+            line-height: 1.6;
+            min-height: 100vh;
+            padding-bottom: 20px;
+        }
+
+        /* ============================================================
+           Layout - 容器與頁首
+           ============================================================ */
+        .container {
+            max-width: 480px;
+            margin: 0 auto;
+            background: white;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.1);
+            border-radius: 20px;
+            overflow: hidden;
+        }
+
+        /* ── Header（封面 + 標題）── */
+        header {
+            background: linear-gradient(135deg, #00A8A8 0%, #20C997 100%);
+            color: white;
+            padding: 0 0 24px;
+            text-align: center;
+            position: relative;
+            overflow: hidden;
+            background-size: cover;
+            background-position: center;
+            background-repeat: no-repeat;
+        }
+
+        /* 自訂圖片時的暗色遮罩，保持文字可讀 */
+        header.has-bg-image::after {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background: linear-gradient(to bottom,
+                rgba(0,0,0,0.35) 0%,
+                rgba(0,0,0,0.5) 100%);
+            z-index: 0;
+        }
+
+        header.has-bg-image > *:not(.header-img-btn) {
+            position: relative;
+            z-index: 1;
+        }
+
+        header.has-bg-image .header-img-btn {
+            position: absolute;
+            z-index: 2;
+        }
+
+        /* 圖片設定按鈕（右上角） */
+        .header-img-btn {
+            position: absolute;
+            bottom: 12px;
+            right: 12px;
+            background: rgba(255,255,255,0.2);
+            backdrop-filter: blur(6px);
+            border: none;
+            border-radius: 10px;
+            color: white;
+            font-size: 11px;
+            font-weight: 700;
+            padding: 5px 10px;
+            cursor: pointer;
+            z-index: 2;
+            transition: background 0.2s;
+        }
+
+        .header-img-btn:hover { background: rgba(255,255,255,0.3); }
+
+        body.view-mode .header-img-btn { display: none; }
+
+        /* ── 唯讀分享模式 ── */
+        body.readonly-mode .mode-switch { display: none !important; }
+        body.readonly-mode .sync-btn { display: none !important; }
+        body.readonly-mode .sync-room { display: none !important; }
+        body.readonly-mode .sync-bar {
+            justify-content: center;
+            gap: 0;
+        }
+        .readonly-banner {
+            display: none;
+            background: rgba(255,255,255,0.18);
+            backdrop-filter: blur(8px);
+            border: 1px solid rgba(255,255,255,0.35);
+            border-radius: 20px;
+            color: white;
+            font-size: 11px;
+            font-weight: 700;
+            padding: 5px 14px;
+            margin: 6px auto 0;
+            letter-spacing: 0.3px;
+            width: fit-content;
+        }
+        body.readonly-mode .readonly-banner { display: block; }
+
+        header::before {
+            content: '';
+            position: absolute;
+            top: -50%;
+            right: -20%;
+            width: 300px;
+            height: 300px;
+            background: radial-gradient(circle, rgba(255,255,255,0.1) 0%, transparent 70%);
+            border-radius: 50%;
+        }
+
+        h1 {
+            font-size: 28px;
+            margin-bottom: 5px;
+            position: relative;
+            z-index: 1;
+        }
+
+        .trip-info {
+            font-size: 13px;
+            opacity: 0.95;
+            position: relative;
+            z-index: 1;
+        }
+
+        /* ============================================================
+           Navigation - 分頁切換
+           ============================================================ */
+        .tabs {
+            display: flex;
+            background: #f0f0f0;
+            border-bottom: 2px solid var(--border);
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+
+        .tab {
+            flex: 1;
+            padding: 12px;
+            text-align: center;
+            cursor: pointer;
+            border: none;
+            background: none;
+            font-size: 12px;
+            font-weight: 600;
+            color: #999;
+            transition: all 0.3s ease;
+            position: relative;
+        }
+
+        .tab.active {
+            color: var(--primary);
+        }
+
+        .tab.active::after {
+            content: '';
+            position: absolute;
+            bottom: -2px;
+            left: 0;
+            right: 0;
+            height: 3px;
+            background: var(--primary);
+        }
+
+        /* ============================================================
+           Itinerary - 行程頁
+           ============================================================ */
+        .tab-content {
+            display: none;
+            padding: 20px;
+            animation: fadeIn 0.3s ease;
+        }
+
+        .tab-content.active {
+            display: block;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+
+        /* ── Day 區塊 ── */
+        .day-card {
+            margin-bottom: 28px;
+            animation: slideUp 0.5s ease-out;
+        }
+
+        .day-header {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 16px;
+            padding: 0 4px;
+        }
+
+        .day-badge {
+            background: linear-gradient(135deg, var(--primary), var(--secondary));
+            color: white;
+            font-size: 11px;
+            font-weight: 800;
+            padding: 4px 10px;
+            border-radius: 20px;
+            white-space: nowrap;
+            letter-spacing: 0.5px;
+        }
+
+        .day-badge.today {
+            background: linear-gradient(135deg, #FF6B35, #FF9F43);
+            box-shadow: 0 2px 8px rgba(255,107,53,0.35);
+        }
+
+        .day-title {
+            font-size: 15px;
+            font-weight: 700;
+            color: var(--dark);
+            flex: 1;
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+
+        .day-date {
+            font-size: 11px;
+            color: #aaa;
+            white-space: nowrap;
+        }
+
+        /* ── 活動列表容器 ── */
+        .timeline {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        /* ── 活動節點 ── */
+        .activity {
+            position: relative;
+            background: rgba(0, 168, 168, 0.04);
+            border: 1.5px solid rgba(0, 168, 168, 0.12);
+            padding: 12px 14px;
+            border-radius: 12px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.04);
+            transition: box-shadow 0.2s, transform 0.2s;
+            -webkit-user-select: none;
+            user-select: none;
+            -webkit-touch-callout: none;
+        }
+
+        .activity:hover {
+            background: rgba(0, 168, 168, 0.07);
+            box-shadow: 0 4px 16px rgba(0,168,168,0.13);
+            transform: translateY(-1px);
+        }
+
+        .activity-header {
+            display: flex;
+            align-items: flex-start;
+            gap: 10px;
+        }
+
+        .activity-icon {
+            font-size: 22px;
+            flex-shrink: 0;
+            line-height: 1;
+            margin-top: 1px;
+        }
+
+        .activity-content {
+            flex: 1;
+            min-width: 0;
+            line-height: 1.3;
+        }
+
+        .activity-title {
+            font-weight: 700;
+            font-size: 13.5px;
+            color: var(--dark);
+            margin-bottom: 2px;
+            line-height: 1.3;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            flex-wrap: wrap;
+        }
+
+        .activity-tag {
+            display: inline-block;
+            font-size: 10px;
+            font-weight: 700;
+            padding: 1px 7px;
+            border-radius: 8px;
+            flex-shrink: 0;
+        }
+        .activity-tag-spot      { background: #E8F5E9; color: #2E7D32; }
+        .activity-tag-food      { background: #FFF3E0; color: #E65100; }
+        .activity-tag-transport { background: #E3F2FD; color: #1565C0; }
+        .activity-tag-hotel     { background: #FCE4EC; color: #C62828; }
+        .activity-tag-shopping  { background: #F3E5F5; color: #7B1FA2; }
+        .activity-tag-activity  { background: #E0F7FA; color: #00838F; }
+
+        .activity-time-top {
+            font-size: 13.5px;
+            font-weight: 700;
+            color: var(--primary);
+            margin-bottom: 2px;
+            font-variant-numeric: tabular-nums;
+            line-height: 1.3;
+        }
+
+        .activity-time {
+            font-size: 11px;
+            color: #aaa;
+            margin-bottom: 2px;
+            font-variant-numeric: tabular-nums;
+            line-height: 1.3;
+        }
+
+        .activity-location {
+            display: inline-flex;
+            align-items: center;
+            gap: 3px;
+            font-size: 11.5px;
+            color: var(--secondary);
+            cursor: pointer;
+            border-radius: 4px;
+            transition: color 0.15s;
+        }
+
+        .activity-location:hover {
+            color: var(--primary);
+            text-decoration: underline;
+        }
+
+        .activity-notes {
+            font-size: 11px;
+            color: #888;
+            margin-top: 6px;
+            padding: 5px 8px;
+            background: #fafafa;
+            border-radius: 6px;
+            border-left: 2px solid var(--border);
+        }
+
+        .activity-check-time {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            font-size: 13.5px;
+            font-weight: 800;
+            color: var(--primary);
+            margin-bottom: 2px;
+            line-height: 1.3;
+        }
+
+        .activity-check-label {
+            font-size: 11px;
+            font-weight: 600;
+            color: #aaa;
+            margin-left: 2px;
+        }
+        .activity-buttons {
+            display: flex;
+            gap: 6px;
+            margin-top: 10px;
+        }
+
+        /* ── 交通連接（活動之間）── */
+        .transport-link {
+            display: flex;
+            align-items: center;
+            padding: 0 4px;
+        }
+
+        .transport-info {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            font-size: 11px;
+            color: #7a5c00;
+            background: #FFF8E8;
+            padding: 3px 10px;
+            border-radius: 20px;
+            border: 1px dashed #F0D78C;
+        }
+
+        .transport-type { font-weight: 600; color: #8B6914; }
+        .transport-duration { color: #A68A3E; }
+        .transport-sep { color: #D4BA6A; }
+
+        /* ── 排序箭頭按鈕 ── */
+        .sort-btns {
+            display: none;
+            flex-direction: column;
+            gap: 4px;
+            position: absolute;
+            right: 10px;
+            top: 50%;
+            transform: translateY(-50%);
+        }
+
+        body:not(.view-mode) .activity:hover .sort-btns {
+            display: flex;
+        }
+
+        /* 手機：一直顯示 */
+        @media (hover: none) {
+            body:not(.view-mode) .sort-btns {
+                display: flex;
+            }
+        }
+        .activity-images {
+            display: flex;
+            gap: 6px;
+            flex-wrap: wrap;
+            margin-top: 8px;
+        }
+
+        .empty-day-hint {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 8px;
+            padding: 28px 16px;
+            border: 2px dashed var(--border);
+            border-radius: 12px;
+            margin: 4px 0;
+            background: #fafafa;
+        }
+
+        .empty-day-icon { font-size: 28px; }
+
+        .empty-day-text {
+            font-size: 13px;
+            color: #bbb;
+            font-weight: 500;
+        }
+
+        .empty-day-btn {
+            background: var(--primary);
+            color: white;
+            border: none;
+            border-radius: 20px;
+            padding: 7px 18px;
+            font-size: 12px;
+            font-weight: 700;
+            cursor: pointer;
+            transition: opacity 0.2s;
+        }
+
+        .empty-day-btn:hover { opacity: 0.85; }
+
+        body.view-mode .empty-day-hint { display: none; }
+
+        /* ── 活動附圖 ── */
+        .activity-thumb {
+            width: 52px;
+            height: 52px;
+            border-radius: 8px;
+            object-fit: cover;
+            cursor: pointer;
+            border: 2px solid var(--border);
+            transition: transform 0.15s, box-shadow 0.15s;
+            flex-shrink: 0;
+        }
+
+        .activity-thumb:hover {
+            transform: scale(1.08);
+            box-shadow: 0 3px 12px rgba(0,0,0,0.18);
+        }
+
+        .activity-thumb-add {
+            width: 52px;
+            height: 52px;
+            border-radius: 8px;
+            border: 2px dashed var(--border);
+            background: var(--light);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 20px;
+            color: #bbb;
+            cursor: pointer;
+            flex-shrink: 0;
+            transition: border-color 0.15s, color 0.15s;
+        }
+
+        .activity-thumb-add:hover {
+            border-color: var(--primary);
+            color: var(--primary);
+        }
+
+        body.view-mode .activity-thumb-add { display: none; }
+
+        /* ── 燈箱 ── */
+        .lightbox-overlay {
+            position: fixed;
+            inset: 0;
+            background: rgba(0,0,0,0.92);
+            z-index: 3000;
+            display: none;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+
+        .lightbox-overlay.active { display: flex; }
+
+        .lightbox-img {
+            max-width: 100%;
+            max-height: 80vh;
+            border-radius: 10px;
+            object-fit: contain;
+            box-shadow: 0 8px 40px rgba(0,0,0,0.5);
+        }
+
+        .lightbox-toolbar {
+            display: flex;
+            gap: 12px;
+            margin-top: 16px;
+            align-items: center;
+        }
+
+        .lightbox-btn {
+            background: rgba(255,255,255,0.15);
+            color: white;
+            border: none;
+            border-radius: 10px;
+            padding: 8px 16px;
+            font-size: 13px;
+            font-weight: 700;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+
+        .lightbox-btn:hover { background: rgba(255,255,255,0.25); }
+        .lightbox-btn.danger { background: rgba(255,80,80,0.3); }
+        .lightbox-btn.danger:hover { background: rgba(255,80,80,0.5); }
+
+        .lightbox-counter {
+            color: rgba(255,255,255,0.6);
+            font-size: 12px;
+            min-width: 50px;
+            text-align: center;
+        }
+        .drag-handle {
+            position: absolute;
+            right: 10px;
+            bottom: 6px;
+            font-size: 16px;
+            color: #bbb;
+            cursor: grab;
+            user-select: none;
+            line-height: 1;
+            padding: 6px 8px;
+            opacity: 0;
+            transition: opacity 0.15s;
+            letter-spacing: -3px;
+            touch-action: none;
+            z-index: 2;
+        }
+
+        /* 編輯模式才顯示 handle */
+        body:not(.view-mode) .activity:hover .drag-handle,
+        body:not(.view-mode) .activity.dragging .drag-handle {
+            opacity: 0.6;
+        }
+        body:not(.view-mode) .drag-handle:hover {
+            opacity: 1 !important;
+            color: var(--primary);
+        }
+
+        /* 手機上一直顯示 */
+        @media (hover: none) {
+            body:not(.view-mode) .drag-handle {
+                opacity: 0.5;
+            }
+        }
+
+        .activity.dragging {
+            opacity: 0.4;
+            cursor: grabbing;
+        }
+
+        .activity.drag-over {
+            border-color: var(--primary) !important;
+            box-shadow: 0 0 0 2px rgba(0,168,168,0.25) !important;
+            transform: translateY(-2px);
+        }
+
+        /* 瀏覽模式：隱藏所有編輯相關元素 */
+        body.view-mode .activity-buttons,
+        body.view-mode .checklist-actions,
+        body.view-mode .expense-item .btn-sm,
+        body.view-mode .toolbar,
+        body.view-mode .edit-pencil,
+        body.view-mode #info-content .btn-sm,
+        body.view-mode #info-content a.btn-sm,
+        body.view-mode .map-edit-btns {
+            display: none !important;
+        }
+
+        body.view-mode .checklist-item input[type="checkbox"] {
+            pointer-events: none;
+        }
+
+        body.view-mode .day-title {
+            cursor: default !important;
+        }
+
+        body.view-mode #tripTitle {
+            cursor: default !important;
+        }
+
+        /* 模式切換開關 */
+        .mode-switch {
+            display: inline-flex;
+            background: rgba(255,255,255,0.2);
+            border-radius: 20px;
+            padding: 3px;
+            margin-top: 10px;
+            position: relative;
+            z-index: 2;
+            backdrop-filter: blur(8px);
+        }
+
+        .mode-switch button {
+            background: transparent;
+            color: rgba(255,255,255,0.55);
+            padding: 7px 10px;
+            font-size: 16px;
+            border-radius: 16px;
+            transition: all 0.25s ease;
+            line-height: 1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .mode-switch button.active {
+            background: white;
+            color: var(--primary);
+            opacity: 1;
+            box-shadow: 0 2px 6px rgba(0,0,0,0.15);
+        }
+
+
+
+
+        /* ============================================================
+           Buttons - 按鈕系統
+           ============================================================ */
+        .btn-sm {
+            padding: 4px 8px;
+            font-size: 11px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .btn-edit {
+            background: var(--secondary);
+            color: white;
+        }
+
+        .btn-edit:hover {
+            background: #3DB5AF;
+        }
+
+        .btn-delete {
+            background: var(--danger);
+            color: white;
+        }
+
+        .btn-delete:hover {
+            background: #FF5252;
+        }
+
+        /* ============================================================
+           Modal - 彈窗系統
+           ============================================================ */
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0,0,0,0.5);
+            z-index: 1000;
+            animation: fadeIn 0.3s ease;
+        }
+
+        .modal.active {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .modal-content {
+            background: white;
+            border-radius: 16px;
+            padding: 24px;
+            width: 92%;
+            max-width: 420px;
+            max-height: 90vh;
+            overflow-y: auto;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            animation: modalSlideUp 0.3s ease;
+            box-sizing: border-box;
+        }
+
+        @keyframes modalSlideUp {
+            from {
+                opacity: 0;
+                transform: translateY(30px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 16px;
+            border-bottom: 2px solid var(--border);
+            padding-bottom: 12px;
+        }
+
+        .modal-header h2 {
+            font-size: 18px;
+        }
+
+        .close-btn {
+            background: none;
+            border: none;
+            font-size: 24px;
+            cursor: pointer;
+            color: #999;
+            transition: all 0.2s ease;
+        }
+
+        .close-btn:hover {
+            color: var(--dark);
+            transform: rotate(90deg);
+        }
+
+        /* 表單 */
+        .form-group {
+            margin-bottom: 16px;
+        }
+
+        .form-group label {
+            display: block;
+            font-weight: 600;
+            margin-bottom: 6px;
+            font-size: 13px;
+        }
+
+        .form-group input,
+        .form-group textarea {
+            width: 100%;
+            padding: 10px;
+            border: 2px solid var(--border);
+            border-radius: 6px;
+            font-size: 13px;
+            font-family: inherit;
+            transition: all 0.2s ease;
+        }
+
+        .form-group input:focus,
+        .form-group textarea:focus {
+            outline: none;
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px rgba(0,168,168,0.12);
+        }
+
+        .form-group textarea {
+            resize: vertical;
+            min-height: 60px;
+        }
+
+        /* 費用項目 */
+        .expense-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 12px;
+            border-bottom: 1px solid var(--border);
+            background: white;
+            border-radius: 6px;
+            margin-bottom: 8px;
+        }
+
+        .expense-label {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+            flex: 1;
+        }
+
+        .expense-icon {
+            font-size: 18px;
+        }
+
+        .expense-info {
+            flex: 1;
+        }
+
+        .expense-name {
+            font-weight: 600;
+            font-size: 13px;
+        }
+
+        .expense-detail {
+            font-size: 11px;
+            color: #999;
+        }
+
+        .expense-amount {
+            font-weight: 700;
+            color: var(--primary);
+            font-size: 14px;
+            margin-right: 8px;
+        }
+
+        .expense-total {
+            background: linear-gradient(135deg, #00A8A8 0%, #20C997 100%);
+            color: white;
+            padding: 16px;
+            border-radius: 10px;
+            margin-top: 16px;
+            text-align: center;
+        }
+
+        .expense-total-label {
+            font-size: 12px;
+            opacity: 0.9;
+            margin-bottom: 4px;
+        }
+
+        .expense-total-amount {
+            font-size: 32px;
+            font-weight: 700;
+        }
+
+        /* 檢查清單 */
+        .checklist-item {
+            display: flex;
+            align-items: center;
+            padding: 12px;
+            background: white;
+            border-radius: 8px;
+            margin-bottom: 8px;
+            border: 2px solid var(--border);
+            cursor: pointer;
+            transition: all 0.2s ease;
+            position: relative;
+            -webkit-user-select: none;
+            user-select: none;
+            -webkit-touch-callout: none;
+        }
+
+        .checklist-item.dragging {
+            opacity: 0.4;
+        }
+
+        .checklist-item.drag-over {
+            border-color: var(--primary) !important;
+            box-shadow: 0 0 0 2px rgba(0,168,168,0.25);
+            transform: translateY(-2px);
+        }
+
+        .checklist-drag-handle {
+            font-size: 14px;
+            color: #bbb;
+            cursor: grab;
+            user-select: none;
+            line-height: 1;
+            padding: 6px 4px;
+            margin-right: 4px;
+            letter-spacing: -2px;
+            touch-action: none;
+            opacity: 0;
+            transition: opacity 0.15s;
+            flex-shrink: 0;
+        }
+        body:not(.view-mode) .checklist-item:hover .checklist-drag-handle,
+        body:not(.view-mode) .checklist-item.dragging .checklist-drag-handle {
+            opacity: 0.6;
+        }
+        body:not(.view-mode) .checklist-drag-handle:hover {
+            opacity: 1 !important;
+            color: var(--primary);
+        }
+        @media (hover: none) {
+            body:not(.view-mode) .checklist-drag-handle {
+                opacity: 0.5;
+            }
+        }
+        body.view-mode .checklist-drag-handle { display: none; }
+
+        .checklist-item.completed {
+            background: #f0f0f0;
+            opacity: 0.6;
+        }
+
+        .checklist-item input {
+            width: 20px;
+            height: 20px;
+            margin-right: 12px;
+            cursor: pointer;
+            accent-color: var(--primary);
+        }
+
+        .checklist-label {
+            flex: 1;
+            font-size: 13px;
+            user-select: none;
+        }
+
+        .checklist-item.completed .checklist-label {
+            text-decoration: line-through;
+            color: #999;
+        }
+
+        .checklist-actions {
+            display: flex;
+            gap: 4px;
+            margin-left: 8px;
+        }
+
+        /* 按鈕 */
+        button {
+            padding: 10px 16px;
+            border: none;
+            border-radius: 8px;
+            font-weight: 600;
+            font-size: 12px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .btn-primary {
+            background: var(--primary);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background: #008C8C;
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(0,168,168,0.3);
+        }
+
+        .btn-secondary {
+            background: var(--light);
+            color: var(--dark);
+            border: 2px solid var(--border);
+        }
+
+        .btn-secondary:hover {
+            background: var(--border);
+        }
+
+        .btn-add {
+            width: 100%;
+            margin-top: 12px;
+            background: var(--success);
+            color: white;
+        }
+
+        .btn-add:hover {
+            background: #5AB866;
+        }
+
+        .btn-save {
+            background: var(--success);
+            color: white;
+        }
+
+        .btn-save:hover {
+            background: #5AB866;
+        }
+
+        .btn-cancel {
+            background: #CCCCCC;
+            color: white;
+        }
+
+        .btn-cancel:hover {
+            background: #AAAAAA;
+        }
+
+        /* ============================================================
+           Toolbar - 工具列
+           ============================================================ */
+        .toolbar {
+            display: flex;
+            gap: 8px;
+            justify-content: space-between;
+            margin-bottom: 16px;
+            padding-bottom: 12px;
+            border-bottom: 2px solid var(--border);
+        }
+
+        .toolbar-left, .toolbar-right {
+            display: flex;
+            gap: 8px;
+        }
+
+        .toolbar button {
+            padding: 8px 12px;
+            font-size: 11px;
+        }
+
+        /* 統計卡片 */
+        .stats-card {
+            background: linear-gradient(135deg, #20C997 0%, #06A77D 100%);
+            color: white;
+            padding: 16px;
+            border-radius: 10px;
+            margin-bottom: 16px;
+            text-align: center;
+        }
+
+        .stats-label {
+            font-size: 12px;
+            opacity: 0.9;
+            margin-bottom: 4px;
+        }
+
+        .stats-value {
+            font-size: 24px;
+            font-weight: 700;
+        }
+
+        /* 提示信息 */
+        .info-box {
+            background: #e6f7ff;
+            border-left: 4px solid var(--secondary);
+            padding: 12px;
+            border-radius: 6px;
+            margin-bottom: 12px;
+            font-size: 12px;
+        }
+
+        /* ============================================================
+           Firebase 同步狀態列
+           ============================================================ */
+        .sync-bar {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            background: rgba(0,0,0,0.25);
+            backdrop-filter: blur(8px);
+            padding: 5px 16px;
+            color: white;
+            font-size: 11px;
+            position: relative;
+            z-index: 2;
+            width: 100%;
+            box-sizing: border-box;
+            margin: 0;
+        }
+
+        .sync-room {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            flex: 1;
+        }
+
+        .sync-room-code {
+            font-size: 12px;
+            font-weight: 800;
+            letter-spacing: 2px;
+            font-variant-numeric: tabular-nums;
+        }
+
+        .sync-status {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            font-size: 11px;
+            opacity: 0.85;
+            white-space: nowrap;
+        }
+
+        .sync-dot {
+            width: 7px;
+            height: 7px;
+            border-radius: 50%;
+            background: #ccc;
+            flex-shrink: 0;
+            transition: background 0.3s;
+        }
+
+        .sync-dot.connected  { background: #51CF66; }
+        .sync-dot.syncing    { background: #FFD43B; animation: pulse 0.8s infinite; }
+        .sync-dot.error      { background: #FF6B6B; }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50%       { opacity: 0.3; }
+        }
+
+        .sync-btn {
+            background: rgba(255,255,255,0.2);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            padding: 3px 8px;
+            font-size: 11px;
+            font-weight: 700;
+            cursor: pointer;
+            white-space: nowrap;
+            transition: background 0.2s;
+        }
+
+        .sync-btn:hover { background: rgba(255,255,255,0.32); }
+
+        /* 房間碼輸入 Modal */
+        .room-modal-overlay {
+            position: fixed;
+            inset: 0;
+            background: rgba(0,0,0,0.6);
+            backdrop-filter: blur(4px);
+            z-index: 2000;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+
+        .room-modal {
+            background: white;
+            border-radius: 20px;
+            padding: 28px 24px;
+            width: 100%;
+            max-width: 320px;
+            text-align: center;
+        }
+
+        .room-modal h2 {
+            font-size: 18px;
+            font-weight: 800;
+            color: var(--dark);
+            margin-bottom: 6px;
+        }
+
+        .room-modal p {
+            font-size: 12px;
+            color: #888;
+            margin-bottom: 20px;
+            line-height: 1.5;
+        }
+
+        .room-code-display {
+            font-size: 36px;
+            font-weight: 900;
+            letter-spacing: 6px;
+            color: var(--primary);
+            background: var(--light);
+            border-radius: 12px;
+            padding: 14px;
+            margin-bottom: 16px;
+            font-variant-numeric: tabular-nums;
+        }
+
+        .room-input {
+            width: 100%;
+            text-align: center;
+            font-size: 22px;
+            font-weight: 800;
+            letter-spacing: 4px;
+            padding: 12px;
+            border: 2px solid var(--border);
+            border-radius: 12px;
+            margin-bottom: 12px;
+            color: var(--dark);
+            text-transform: uppercase;
+        }
+
+        .room-input:focus {
+            outline: none;
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px rgba(0,168,168,0.12);
+        }
+
+        .room-divider {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin: 16px 0;
+            color: #ccc;
+            font-size: 12px;
+        }
+
+        .room-divider::before,
+        .room-divider::after {
+            content: '';
+            flex: 1;
+            height: 1px;
+            background: var(--border);
+        }
+        .weather-widget {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 16px;
+            background: linear-gradient(135deg, #006B7D, #00A8A8);
+            border-radius: 14px;
+            padding: 14px 18px;
+            color: white;
+            font-size: 13px;
+            min-height: 44px;
+            transition: opacity 0.3s;
+        }
+
+        .weather-widget.loading {
+            opacity: 0.5;
+        }
+
+        .weather-main {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .weather-icon { font-size: 28px; line-height: 1; }
+
+        .weather-temp {
+            font-size: 24px;
+            font-weight: 800;
+            letter-spacing: -0.5px;
+        }
+
+        .weather-details {
+            display: flex;
+            flex-direction: column;
+            gap: 2px;
+            font-size: 11px;
+            opacity: 0.9;
+            border-left: 1px solid rgba(255,255,255,0.3);
+            padding-left: 14px;
+        }
+
+        .weather-details span { white-space: nowrap; }
+
+        /* ── 圓餅圖 ── */
+        .chart-card {
+            background: white;
+            border: 1.5px solid #eef0f0;
+            border-radius: 16px;
+            padding: 16px;
+            margin-bottom: 16px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+        }
+
+        .chart-title {
+            font-size: 13px;
+            font-weight: 700;
+            color: var(--dark);
+            margin-bottom: 14px;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .chart-body {
+            display: flex;
+            align-items: center;
+            gap: 18px;
+        }
+
+        .pie-wrap {
+            flex-shrink: 0;
+            width: 110px;
+            height: 110px;
+        }
+
+        .pie-wrap svg { width: 100%; height: 100%; }
+
+        .legend-list {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            gap: 7px;
+        }
+
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 12px;
+        }
+
+        .legend-dot {
+            width: 10px;
+            height: 10px;
+            border-radius: 3px;
+            flex-shrink: 0;
+        }
+
+        .legend-label { flex: 1; color: var(--dark); }
+        .legend-pct   { font-weight: 700; color: var(--dark); }
+        .legend-amt   { font-size: 11px; color: #aaa; margin-left: 2px; }
+
+        /* ── 人數分攤 ── */
+        .split-card {
+            background: linear-gradient(135deg, var(--primary), var(--secondary));
+            color: white;
+            border-radius: 16px;
+            padding: 16px 18px;
+            margin-top: 12px;
+        }
+
+        .split-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 12px;
+        }
+
+        .split-title {
+            font-size: 13px;
+            font-weight: 700;
+            opacity: 0.95;
+        }
+
+        .split-input-wrap {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            background: rgba(255,255,255,0.2);
+            border-radius: 20px;
+            padding: 4px 6px 4px 12px;
+        }
+
+        .split-input-wrap span { font-size: 12px; opacity: 0.9; }
+
+        .split-people {
+            width: 40px;
+            background: white;
+            border: none;
+            border-radius: 12px;
+            padding: 4px 6px;
+            font-size: 14px;
+            font-weight: 700;
+            color: var(--primary);
+            text-align: center;
+        }
+
+        .split-people:focus { outline: none; }
+
+        .split-result {
+            display: flex;
+            align-items: baseline;
+            gap: 6px;
+        }
+
+        .split-per-person {
+            font-size: 30px;
+            font-weight: 800;
+            letter-spacing: -0.5px;
+        }
+
+        .split-label { font-size: 12px; opacity: 0.85; }
+
+        /* ============================================================
+           Welcome Screen - 歡迎畫面
+           ============================================================ */
+        .welcome-overlay {
+            position: fixed;
+            inset: 0;
+            background: linear-gradient(135deg, #00A8A8 0%, #20C997 100%);
+            z-index: 9999;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 32px 24px;
+            color: white;
+            text-align: center;
+        }
+
+        .welcome-emoji { font-size: 56px; margin-bottom: 12px; }
+        .welcome-title { font-size: 26px; font-weight: 800; margin-bottom: 6px; }
+        .welcome-sub { font-size: 13px; opacity: 0.85; margin-bottom: 36px; line-height: 1.6; }
+
+        .welcome-card {
+            background: white;
+            border-radius: 20px;
+            padding: 24px 20px;
+            width: 100%;
+            max-width: 320px;
+            color: var(--dark);
+        }
+
+        .welcome-card h3 { font-size: 15px; font-weight: 800; margin-bottom: 4px; }
+        .welcome-card p  { font-size: 12px; color: #888; margin-bottom: 14px; }
+
+        .welcome-input {
+            width: 100%;
+            text-align: center;
+            font-size: 22px;
+            font-weight: 800;
+            letter-spacing: 4px;
+            padding: 12px;
+            border: 2px solid var(--border);
+            border-radius: 12px;
+            margin-bottom: 12px;
+            color: var(--dark);
+            text-transform: uppercase;
+            box-sizing: border-box;
+        }
+
+        .welcome-input:focus { outline: none; border-color: var(--primary); }
+
+        .welcome-btn {
+            width: 100%;
+            padding: 13px;
+            background: linear-gradient(135deg, var(--primary), var(--secondary));
+            color: white;
+            border: none;
+            border-radius: 12px;
+            font-size: 14px;
+            font-weight: 700;
+            cursor: pointer;
+            margin-bottom: 10px;
+        }
+
+        .welcome-btn-new {
+            width: 100%;
+            padding: 10px;
+            background: transparent;
+            color: var(--primary);
+            border: 1.5px solid var(--border);
+            border-radius: 12px;
+            font-size: 13px;
+            font-weight: 600;
+            cursor: pointer;
+        }
+
+        .day-select {
+            width: 100%;
+            padding: 9px 14px;
+            border: 1.5px solid var(--border);
+            border-radius: 10px;
+            font-size: 13px;
+            font-weight: 600;
+            color: var(--dark);
+            background: white;
+            cursor: pointer;
+            appearance: none;
+            -webkit-appearance: none;
+            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%23aaa' stroke-width='2.5'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E");
+            background-repeat: no-repeat;
+            background-position: right 12px center;
+            padding-right: 32px;
+            margin-bottom: 16px;
+            transition: border-color 0.2s;
+        }
+
+        .day-select:focus {
+            outline: none;
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px rgba(0,168,168,0.12);
+        }
+
+        .map-day-section {
+            margin-bottom: 20px;
+        }
+
+        .map-day-label {
+            font-size: 12px;
+            font-weight: 800;
+            color: var(--primary);
+            text-transform: uppercase;
+            letter-spacing: 0.8px;
+            margin-bottom: 10px;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .map-day-label::after {
+            content: '';
+            flex: 1;
+            height: 1px;
+            background: var(--border);
+        }
+
+        .map-place-card {
+            display: flex;
+            align-items: center;
+            gap: 14px;
+            background: white;
+            border: 1.5px solid #eef0f0;
+            border-radius: 14px;
+            padding: 13px 14px;
+            margin-bottom: 10px;
+            cursor: pointer;
+            transition: all 0.2s;
+            text-decoration: none;
+            color: inherit;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.045);
+            position: relative;
+            overflow: hidden;
+            -webkit-user-select: none;
+            user-select: none;
+            -webkit-touch-callout: none;
+        }
+
+        .map-place-card::after {
+            content: '→';
+            position: absolute;
+            right: 14px;
+            top: 50%;
+            transform: translateY(-50%);
+            font-size: 16px;
+            color: var(--border);
+            transition: all 0.2s;
+        }
+
+        .map-place-card:hover {
+            border-color: var(--primary);
+            box-shadow: 0 4px 16px rgba(0,168,168,0.15);
+            transform: translateX(3px);
+        }
+
+        .map-place-card:hover::after {
+            color: var(--primary);
+            right: 10px;
+        }
+
+        .map-place-icon {
+            font-size: 26px;
+            width: 44px;
+            height: 44px;
+            background: var(--light);
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+        }
+
+        .map-place-body {
+            flex: 1;
+            min-width: 0;
+            padding-right: 20px;
+        }
+
+        .map-place-title {
+            font-size: 13.5px;
+            font-weight: 700;
+            color: var(--dark);
+            margin-bottom: 3px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .map-place-loc {
+            font-size: 11.5px;
+            color: var(--secondary);
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .map-place-time {
+            font-size: 10.5px;
+            color: #bbb;
+            margin-top: 2px;
+        }
+
+        .map-open-all {
+            width: 100%;
+            margin-top: 4px;
+            padding: 11px;
+            background: linear-gradient(135deg, var(--primary), var(--secondary));
+            color: white;
+            border: none;
+            border-radius: 12px;
+            font-size: 13px;
+            font-weight: 700;
+            cursor: pointer;
+            transition: opacity 0.2s, transform 0.2s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
+        }
+
+        .map-open-all:hover {
+            opacity: 0.9;
+            transform: translateY(-1px);
+        }
+
+        /* ── 提示訊息 ── */
+        .success-message {
+            background: #00A8A8;
+            color: white;
+            padding: 10px 20px;
+            border-radius: 10px;
+            font-size: 13px;
+            font-weight: 600;
+            box-shadow: 0 4px 16px rgba(0,0,0,0.15);
+            animation: toastIn 0.3s ease, toastOut 0.3s ease 1.7s forwards;
+        }
+
+        @keyframes toastIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to   { opacity: 1; transform: translateY(0); }
+        }
+        @keyframes toastOut {
+            from { opacity: 1; transform: translateY(0); }
+            to   { opacity: 0; transform: translateY(10px); }
+        }
+
+        /* ============================================================
+           Animations - 動畫
+           ============================================================ */
+        @keyframes slideUp {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .day-card:nth-child(1)  { animation-delay: 0.1s; }
+        .day-card:nth-child(2)  { animation-delay: 0.2s; }
+        .day-card:nth-child(3)  { animation-delay: 0.3s; }
+        .day-card:nth-child(4)  { animation-delay: 0.4s; }
+        .day-card:nth-child(5)  { animation-delay: 0.5s; }
+        .day-card:nth-child(6)  { animation-delay: 0.6s; }
+        .day-card:nth-child(7)  { animation-delay: 0.7s; }
+        .day-card:nth-child(8)  { animation-delay: 0.8s; }
+        .day-card:nth-child(9)  { animation-delay: 0.9s; }
+        .day-card:nth-child(10) { animation-delay: 1.0s; }
+        .day-card:nth-child(11) { animation-delay: 1.1s; }
+        .day-card:nth-child(12) { animation-delay: 1.2s; }
+        .day-card:nth-child(13) { animation-delay: 1.3s; }
+        .day-card:nth-child(14) { animation-delay: 1.4s; }
+        .day-card:nth-child(n+15) { animation-delay: 1.5s; }
+
+        /* ============================================================
+           Responsive - 手機適配
+           ============================================================ */
+        @media (max-width: 480px) {
+            .container {
+                border-radius: 0;
+            }
+
+            h1 {
+                font-size: 24px;
+            }
+
+            .modal-content {
+                width: 92%;
+                max-width: 420px;
+                padding: 18px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header id="mainHeader">
+            <button class="header-img-btn" onclick="openBannerModal()">🖼️ 封面</button>
+            <div class="sync-bar">
+                <div class="sync-room">
+                    <span>🔗</span>
+                    <span class="sync-room-code" id="syncRoomCode">––––––</span>
+                </div>
+                <div class="sync-status">
+                    <div class="sync-dot" id="syncDot"></div>
+                    <span id="syncLabel">未連線</span>
+                </div>
+                <button class="sync-btn" id="syncRetryBtn" style="display:none;" onclick="retryConnection()">重試</button>
+                <button class="sync-btn" onclick="showRoomModal()">換房間</button>
+                <button class="sync-btn" onclick="shareRoom()">邀請</button>
+                <button class="sync-btn" onclick="shareReadonly()">🔗分享連結</button>
+            </div>
+            <div class="readonly-banner">🤓僅供檢視</div>
+            <h1 id="tripTitle" onclick="openTripModal()" style="cursor:pointer;margin-top:22px;" title="點擊編輯">🇯🇵 沖繩之旅</h1>
+            <p class="trip-info" id="tripInfo">2026.07.16 - 07.20 | 5日4夜</p>
+            <div class="mode-switch" role="tablist" aria-label="顯示模式">
+                <button id="modeViewBtn" class="active" onclick="setMode('view')" title="瀏覽模式">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+                </button>
+                <button id="modeEditBtn" onclick="setMode('edit')" title="編輯模式">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+                </button>
+            </div>
+        </header>
+
+        <div class="tabs">
+            <button class="tab active" onclick="switchTab('itinerary', this)">📅 行程</button>
+            <button class="tab" onclick="switchTab('map', this)">🗺️ 地圖</button>
+            <button class="tab" onclick="switchTab('expense', this)">💰 費用</button>
+            <button class="tab" onclick="switchTab('info', this)">ℹ️ 資訊</button>
+            <button class="tab" onclick="switchTab('checklist', this)">✓ 清單</button>
+        </div>
+
+        <!-- 行程標籤頁 -->
+        <div id="itinerary" class="tab-content active">
+            <div class="toolbar">
+                <div class="toolbar-left">
+                    <button class="btn-primary" onclick="openItem('activity')">➕ 新增活動</button>
+                </div>
+                <div class="toolbar-right">
+                    <button class="btn-secondary" onclick="exportData()">📤 匯出</button>
+                    <button class="btn-secondary" onclick="document.getElementById('importFile').click()">📥 匯入</button>
+                    <input type="file" id="importFile" accept=".json" style="display:none;" onchange="importData(event)">
+                    <button class="btn-secondary" onclick="resetData()">🔄 重設</button>
+                </div>
+            </div>
+            <div id="itinerary-filter"></div>
+            <div id="itinerary-list"></div>
+        </div>
+
+        <!-- 費用標籤頁 -->
+        <div id="expense" class="tab-content">
+            <div class="toolbar">
+                <div class="toolbar-left">
+                    <button class="btn-primary" onclick="openItem('expense')">➕ 新增費用</button>
+                </div>
+            </div>
+            <div id="expense-chart"></div>
+            <div id="expense-list"></div>
+            <div id="expense-total"></div>
+            <div id="expense-split"></div>
+        </div>
+
+        <!-- 清單標籤頁 -->
+        <div id="checklist" class="tab-content">
+            <div class="toolbar">
+                <div class="toolbar-left">
+                    <button class="btn-primary" onclick="openItem('checklist')">➕ 新增項目</button>
+                </div>
+            </div>
+            <div id="checklist-list"></div>
+        </div>
+
+        <!-- 地圖標籤頁 -->
+        <div id="map" class="tab-content">
+            <div class="toolbar">
+                <div class="toolbar-left">
+                    <button class="btn-primary" onclick="openItem('place')">➕ 新增景點</button>
+                </div>
+            </div>
+            <div id="map-filter"></div>
+            <div id="map-list"></div>
+        </div>
+
+        <!-- 資訊標籤頁 -->
+        <div id="info" class="tab-content">
+            <div class="toolbar">
+                <div class="toolbar-left" style="gap:6px;">
+                    <button class="btn-primary" onclick="openFlightModal()">✈️ 編輯航班</button>
+                    <button class="btn-secondary" onclick="openItem('hotel')">🏨 新增飯店</button>
+                </div>
+            </div>
+            <div id="info-content"></div>
+        </div>
+    </div>
+
+    <!-- 編輯日期標題模態 -->
+    <div id="dayTitleModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 id="dayTitleModalTitle">編輯 Day 標題</h2>
+                <button class="close-btn" onclick="closeModal('dayTitleModal')">✕</button>
+            </div>
+            <form onsubmit="saveDayTitle(event)">
+                <div class="form-group">
+                    <label>圖示 (emoji)</label>
+                    <input type="text" id="dayTitleEmoji" placeholder="例: 🍤" maxlength="2" required>
+                </div>
+                <div class="form-group">
+                    <label>標題</label>
+                    <input type="text" id="dayTitleText" placeholder="例: 國際通" required>
+                </div>
+                <div style="display: flex; gap: 8px;">
+                    <button type="submit" class="btn-save">💾 保存</button>
+                    <button type="button" class="btn-cancel" onclick="closeModal('dayTitleModal')">取消</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- 新增/編輯活動模態 -->
+    <div id="activityModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 id="activityModalTitle">新增活動</h2>
+                <button class="close-btn" onclick="closeModal('activityModal')">✕</button>
+            </div>
+            <form onsubmit="saveItem('activity', event)">
+                <div class="form-group">
+                    <label>選擇日期</label>
+                    <select id="activityDay" style="width: 100%; padding: 10px; border: 2px solid var(--border); border-radius: 6px;">
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>⏰ 關鍵時間點（顯示在標題上方）</label>
+                    <div style="display:flex;gap:8px;align-items:center;">
+                        <input type="time" id="activityCheckTime" style="flex:1;padding:10px;border:2px solid var(--border);border-radius:6px;font-size:13px;">
+                        <input type="text" id="activityCheckLabel" placeholder="集合 / 出發 / 到達" style="flex:1.5;padding:10px;border:2px solid var(--border);border-radius:6px;font-size:12px;">
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label>🏷️ 標籤分類</label>
+                    <select id="activityTag" style="width: 100%; padding: 10px; border: 2px solid var(--border); border-radius: 6px;">
+                        <option value="">不分類</option>
+                        <option value="spot">🏛️ 景點</option>
+                        <option value="food">🍽️ 餐廳</option>
+                        <option value="transport">🚗 交通</option>
+                        <option value="hotel">🏨 住宿</option>
+                        <option value="shopping">🛍️ 購物</option>
+                        <option value="activity">🎯 活動</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>圖示 (emoji)</label>
+                    <input type="text" id="activityIcon" placeholder="例: 🍜" required>
+                </div>
+                <div class="form-group">
+                    <label>活動標題</label>
+                    <input type="text" id="activityTitle" placeholder="例: 國際通晚餐" required>
+                </div>
+                <div class="form-group">
+                    <label>時間</label>
+                    <div style="display:flex; align-items:center; gap:8px;">
+                        <input type="time" id="activityTimeStart" style="flex:1; padding:10px; border:2px solid var(--border); border-radius:6px; font-size:13px;">
+                        <span style="color:#aaa; font-size:13px;">－</span>
+                        <input type="time" id="activityTimeEnd" style="flex:1; padding:10px; border:2px solid var(--border); border-radius:6px; font-size:13px;">
+                    </div>
+                    <div style="margin-top:6px;">
+                        <input type="text" id="activityTimeNote" placeholder="補充說明（選填），例：虎航IT728、集合點" style="width:100%; padding:8px 10px; border:2px solid var(--border); border-radius:6px; font-size:12px;">
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label>地點</label>
+                    <input type="text" id="activityLocation" placeholder="例: 國際通">
+                </div>
+                <div class="form-group">
+                    <label>備註</label>
+                    <textarea id="activityNotes" placeholder="額外說明..."></textarea>
+                </div>
+                <div class="form-group">
+                    <label>🚌 從上一站到這裡的交通方式</label>
+                    <input type="text" id="activityTransportType" placeholder="例: 🚝 單軌電車">
+                </div>
+                <div class="form-group">
+                    <label>⏱️ 交通所需時間</label>
+                    <input type="text" id="activityTransportDuration" placeholder="例: 15分">
+                </div>
+                <div class="form-group">
+                    <label>📸 附圖（訂單截圖、票券等）</label>
+                    <div id="modalImgPreviewList" style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:8px;"></div>
+                    <button type="button" class="btn-secondary" style="width:100%;padding:10px;border:2px dashed var(--border);background:var(--light);border-radius:8px;color:#888;font-size:13px;"
+                        onclick="document.getElementById('activityModalImgFile').click()">
+                        ＋ 新增圖片
+                    </button>
+                </div>
+                <div style="display: flex; gap: 8px;">
+                    <button type="submit" class="btn-save">💾 保存</button>
+                    <button type="button" class="btn-cancel" onclick="closeModal('activityModal')">取消</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- 新增/編輯費用模態 -->
+    <div id="expenseModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 id="expenseModalTitle">新增費用</h2>
+                <button class="close-btn" onclick="closeModal('expenseModal')">✕</button>
+            </div>
+            <form onsubmit="saveItem('expense', event)">
+                <div class="form-group">
+                    <label>圖示 (emoji)</label>
+                    <input type="text" id="expenseIcon" placeholder="例: ✈️" required>
+                </div>
+                <div class="form-group">
+                    <label>費用名稱</label>
+                    <input type="text" id="expenseName" placeholder="例: 往返機票" required>
+                </div>
+                <div class="form-group">
+                    <label>費用詳情</label>
+                    <input type="text" id="expenseDetail" placeholder="例: 虎航 IT728 往返">
+                </div>
+                <div class="form-group">
+                    <label>金額 (NT$)</label>
+                    <input type="number" id="expenseAmount" placeholder="11710" required>
+                </div>
+                <div class="form-group">
+                    <label>類別</label>
+                    <select id="expenseCategory" style="width:100%;padding:10px;border:2px solid var(--border);border-radius:6px;font-size:13px;">
+                        <option value="交通">✈️ 交通</option>
+                        <option value="住宿">🏨 住宿</option>
+                        <option value="餐飲">🍜 餐飲</option>
+                        <option value="活動">🎯 活動</option>
+                        <option value="購物">🛍️ 購物</option>
+                        <option value="其他">📦 其他</option>
+                    </select>
+                </div>
+                <div style="display: flex; gap: 8px;">
+                    <button type="submit" class="btn-save">💾 保存</button>
+                    <button type="button" class="btn-cancel" onclick="closeModal('expenseModal')">取消</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- 新增/編輯清單項目模態 -->
+    <div id="checklistModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 id="checklistModalTitle">新增清單項目</h2>
+                <button class="close-btn" onclick="closeModal('checklistModal')">✕</button>
+            </div>
+            <form onsubmit="saveItem('checklist', event)">
+                <div class="form-group">
+                    <label>分類</label>
+                    <select id="checklistCategory" style="width: 100%; padding: 10px; border: 2px solid var(--border); border-radius: 6px;">
+                        <option value="準備">行前準備</option>
+                        <option value="打包">打包清單</option>
+                        <option value="確認">行程確認</option>
+                        <option value="待購">待購清單</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>項目內容</label>
+                    <input type="text" id="checklistContent" placeholder="例: 護照檢查" required>
+                </div>
+                <div style="display: flex; gap: 8px;">
+                    <button type="submit" class="btn-save">💾 保存</button>
+                    <button type="button" class="btn-cancel" onclick="closeModal('checklistModal')">取消</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- 編輯資訊模態 -->
+    <!-- 歡迎畫面（首次進入或無房間碼時顯示）-->
+    <div id="welcomeOverlay" class="welcome-overlay" style="display:none;">
+        <div class="welcome-emoji">🌏</div>
+        <div class="welcome-title">旅遊行程規劃</div>
+        <div class="welcome-sub">輸入房間碼加入共同編輯<br>或建立新的旅行行程</div>
+        <div class="welcome-card">
+            <h3>加入已有行程</h3>
+            <p>輸入同行者分享的房間碼</p>
+            <input class="welcome-input" id="welcomeRoomInput" maxlength="6"
+                placeholder="房間碼"
+                oninput="this.value=this.value.toUpperCase().replace(/[^A-Z0-9]/g,'')"
+                onkeydown="if(event.key==='Enter') welcomeJoin()">
+            <button class="welcome-btn" onclick="welcomeJoin()">🔗 加入行程</button>
+            <button class="welcome-btn-new" onclick="welcomeNew()">＋ 建立新行程</button>
+        </div>
+    </div>
+
+    <!-- 燈箱 -->
+    <div id="lightboxOverlay" class="lightbox-overlay" onclick="closeLightboxOnBg(event)">
+        <img id="lightboxImg" class="lightbox-img" src="" alt="">
+        <div class="lightbox-toolbar">
+            <button class="lightbox-btn" onclick="lightboxNav(-1)">← 上一張</button>
+            <span class="lightbox-counter" id="lightboxCounter"></span>
+            <button class="lightbox-btn" onclick="lightboxNav(1)">下一張 →</button>
+            <button class="lightbox-btn danger" id="lightboxDeleteBtn" onclick="lightboxDelete()">🗑️ 刪除</button>
+            <button class="lightbox-btn" onclick="closeLightbox()">✕ 關閉</button>
+        </div>
+    </div>
+
+    <!-- 活動圖片上傳 (hidden) -->
+    <input type="file" id="activityImgFile" accept="image/*" multiple style="display:none;" onchange="handleActivityImgUpload(event)">
+
+    <!-- 活動 Modal 內的圖片上傳 (hidden) -->
+    <input type="file" id="activityModalImgFile" accept="image/*" multiple style="display:none;" onchange="handleModalImgUpload(event)">
+
+    <!-- 封面圖片 Modal -->
+    <div id="bannerModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>🖼️ 設定封面圖片</h2>
+                <button class="close-btn" onclick="closeModal('bannerModal')">✕</button>
+            </div>
+
+            <!-- 預覽（可拖曳調整位置）-->
+            <div id="bannerPreview" style="width:100%;height:140px;border-radius:12px;margin-bottom:8px;background:linear-gradient(135deg,#00A8A8,#20C997);background-size:cover;background-position:50% 50%;position:relative;overflow:hidden;cursor:grab;user-select:none;touch-action:none;">
+                <div id="bannerDragHint" style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;background:rgba(0,0,0,0.25);border-radius:12px;color:white;font-size:12px;font-weight:700;gap:6px;pointer-events:none;opacity:0;transition:opacity 0.2s;">
+                    ✥ 拖曳調整位置
+                </div>
+            </div>
+            <div style="display:flex;justify-content:center;gap:6px;margin-bottom:14px;">
+                <span id="bannerPosLabel" style="font-size:11px;color:#aaa;"></span>
+                <button onclick="resetBannerPos()" style="font-size:11px;color:var(--secondary);background:none;border:none;cursor:pointer;text-decoration:underline;">重置置中</button>
+            </div>
+
+            <!-- 上傳檔案 -->
+            <div class="form-group">
+                <label>📁 上傳圖片</label>
+                <input type="file" id="bannerFile" accept="image/*"
+                    style="width:100%;padding:8px;border:2px dashed var(--border);border-radius:8px;font-size:12px;"
+                    onchange="previewBannerFile(event)">
+            </div>
+
+            <div style="display:flex;align-items:center;gap:10px;margin:8px 0;color:#aaa;font-size:12px;">
+                <div style="flex:1;height:1px;background:var(--border);"></div>或<div style="flex:1;height:1px;background:var(--border);"></div>
+            </div>
+
+            <!-- 網址 -->
+            <div class="form-group">
+                <label>🔗 圖片網址</label>
+                <input type="url" id="bannerUrl" placeholder="https://..." style="width:100%;"
+                    oninput="previewBannerUrl(this.value)">
+            </div>
+
+            <div style="display:flex;gap:8px;margin-top:16px;">
+                <button class="btn-save" onclick="saveBanner()">💾 套用</button>
+                <button class="btn-cancel" onclick="removeBanner()">🗑️ 移除圖片</button>
+                <button class="btn-cancel" onclick="closeModal('bannerModal')">取消</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 旅行基本資訊 Modal -->
+    <div id="tripModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>🌏 編輯旅行資訊</h2>
+                <button class="close-btn" onclick="closeModal('tripModal')">✕</button>
+            </div>
+            <form onsubmit="saveTripData(event)">
+                <div class="form-group">
+                    <label>旅行 Emoji</label>
+                    <input type="text" id="tripEmoji" placeholder="🇯🇵" maxlength="4" style="font-size:22px;width:80px;">
+                </div>
+                <div class="form-group">
+                    <label>旅行標題</label>
+                    <input type="text" id="tripTitleInput" placeholder="沖繩之旅" required>
+                </div>
+                <div class="form-group">
+                    <label>出發日期</label>
+                    <input type="date" id="tripStartDate">
+                </div>
+                <div class="form-group">
+                    <label>回程日期</label>
+                    <input type="date" id="tripEndDate">
+                </div>
+                <div class="form-group">
+                    <label>補充說明（天數等）</label>
+                    <input type="text" id="tripDescription" placeholder="5日4夜">
+                </div>
+                <div style="display:flex;gap:8px;margin-top:16px;">
+                    <button type="submit" class="btn-save">💾 保存</button>
+                    <button type="button" class="btn-cancel" onclick="closeModal('tripModal')">取消</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- 額外景點 Modal -->
+    <div id="placeModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 id="placeModalTitle">📌 新增景點</h2>
+                <button class="close-btn" onclick="closeModal('placeModal')">✕</button>
+            </div>
+            <form onsubmit="saveItem('place', event)">
+                <div class="form-group">
+                    <label>圖示 (emoji)</label>
+                    <input type="text" id="placeIcon" placeholder="例: 🍜" required>
+                </div>
+                <div class="form-group">
+                    <label>景點名稱</label>
+                    <input type="text" id="placeName" placeholder="例: 首里城" required>
+                </div>
+                <div class="form-group">
+                    <label>地址 / 地點</label>
+                    <input type="text" id="placeLocation" placeholder="例: 那霸市首里" required>
+                </div>
+                <div class="form-group">
+                    <label>分配到（選填）</label>
+                    <select id="placeDay" style="width:100%;padding:10px;border:2px solid var(--border);border-radius:6px;font-size:13px;">
+                        <option value="0">📌 未排程（想去清單）</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>備註</label>
+                    <input type="text" id="placeNotes" placeholder="例: 推薦的店家、營業時間">
+                </div>
+                <div style="display:flex;gap:8px;margin-top:16px;">
+                    <button type="submit" class="btn-save">💾 保存</button>
+                    <button type="button" class="btn-cancel" onclick="closeModal('placeModal')">取消</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- 航班編輯 Modal -->
+    <div id="flightModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>✈️ 編輯航班資訊</h2>
+                <button class="close-btn" onclick="closeModal('flightModal')">✕</button>
+            </div>
+            <form onsubmit="saveFlightData(event)">
+                <h3 style="margin: 4px 0 12px; font-size: 13px; color: #666;">🛫 去程</h3>
+                <div class="form-group">
+                    <label>日期</label>
+                    <input type="date" id="infoFlightOutDate">
+                </div>
+                <div class="form-group">
+                    <label>班機號碼</label>
+                    <input type="text" id="infoFlightOutName" placeholder="例：IT728">
+                </div>
+                <div class="form-group">
+                    <label>📷 機票照片</label>
+                    <div id="flightOutImgPreview" style="margin-bottom:8px;"></div>
+                    <button type="button" class="btn-secondary" style="width:100%;padding:10px;"
+                        onclick="triggerFlightImgUpload('Out')">＋ 上傳照片</button>
+                    <input type="file" id="flightOutImgInput" accept="image/*" style="display:none;"
+                        onchange="handleFlightImgUpload(event,'Out')">
+                </div>
+
+                <h3 style="margin: 16px 0 12px; font-size: 13px; color: #666;">🛬 回程</h3>
+                <div class="form-group">
+                    <label>日期</label>
+                    <input type="date" id="infoFlightReturnDate">
+                </div>
+                <div class="form-group">
+                    <label>班機號碼</label>
+                    <input type="text" id="infoFlightReturnName" placeholder="例：IT728">
+                </div>
+                <div class="form-group">
+                    <label>📷 機票照片</label>
+                    <div id="flightReturnImgPreview" style="margin-bottom:8px;"></div>
+                    <button type="button" class="btn-secondary" style="width:100%;padding:10px;"
+                        onclick="triggerFlightImgUpload('Return')">＋ 上傳照片</button>
+                    <input type="file" id="flightReturnImgInput" accept="image/*" style="display:none;"
+                        onchange="handleFlightImgUpload(event,'Return')">
+                </div>
+
+                <div style="display:flex;gap:8px;margin-top:16px;">
+                    <button type="submit" class="btn-save">💾 保存</button>
+                    <button type="button" class="btn-cancel" onclick="closeModal('flightModal')">取消</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- 飯店新增/編輯 Modal -->
+    <div id="hotelModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 id="hotelModalTitle">🏨 新增飯店</h2>
+                <button class="close-btn" onclick="closeModal('hotelModal')">✕</button>
+            </div>
+            <form onsubmit="saveItem('hotel', event)">
+                <div class="form-group">
+                    <label>飯店名稱</label>
+                    <input type="text" id="hotelName" placeholder="Comfort Hotel Naha" required>
+                </div>
+                <div class="form-group">
+                    <label>Google Maps 連結</label>
+                    <input type="url" id="hotelMapUrl" placeholder="https://maps.app.goo.gl/...">
+                </div>
+                <div class="form-group">
+                    <label>訂房平台</label>
+                    <input type="text" id="hotelPlatform" placeholder="Booking.com / Agoda / Hotels.com">
+                </div>
+                <div class="form-group">
+                    <label>訂單編號</label>
+                    <input type="text" id="hotelBookingId" placeholder="IN1601213592">
+                </div>
+                <div class="form-group">
+                    <label>入住日期</label>
+                    <input type="date" id="hotelCheckIn">
+                </div>
+                <div class="form-group">
+                    <label>退房日期</label>
+                    <input type="date" id="hotelCheckOut">
+                </div>
+                <div style="display:flex;gap:8px;margin-top:16px;">
+                    <button type="submit" class="btn-save">💾 保存</button>
+                    <button type="button" class="btn-cancel" onclick="closeModal('hotelModal')">取消</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        // 初始化數據結構
+        const DEFAULT_DATA = {
+            trip: {
+                emoji: '🌏',
+                title: '我的旅行',
+                startDate: '',
+                endDate: '',
+                description: ''
+            },
+            dayTitles: [
+                '',
+                { emoji: '📍', title: 'Day 1' },
+                { emoji: '📍', title: 'Day 2' },
+                { emoji: '📍', title: 'Day 3' },
+                { emoji: '📍', title: 'Day 4' },
+                { emoji: '📍', title: 'Day 5' }
+            ],
+            activities: [],
+            extraPlaces: [],
+            expenses: [],
+            checklists: [],
+            info: {
+                flightOut:    { flightName: '', date: '', image: '' },
+                flightReturn: { flightName: '', date: '', image: '' },
+                hotels: []
+            }
+        };
+        // ── localStorage 工具函數 ──
+        function loadStorage(key, defaultValue = null) {
+            try {
+                const raw = localStorage.getItem(key);
+                if (!raw) return defaultValue;
+                return JSON.parse(raw);
+            } catch (err) {
+                console.error(`讀取 ${key} 失敗:`, err);
+                localStorage.removeItem(key);
+                return defaultValue;
+            }
+        }
+
+        function saveStorage(key, data) {
+            try {
+                localStorage.setItem(key, JSON.stringify(data));
+            } catch (err) {
+                console.warn(`儲存 ${key} 失敗:`, err);
+            }
+        }
+
+        // 深層複製 DEFAULT_DATA 的工具函數
+        function cloneDefault() { return JSON.parse(JSON.stringify(DEFAULT_DATA)); }
+
+        // HTML escape 工具：防止使用者輸入造成 XSS / 破版
+        function escapeHtml(str) {
+            if (str == null) return '';
+            return String(str)
+                .replace(/&/g, '&amp;')
+                .replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;')
+                .replace(/"/g, '&quot;')
+                .replace(/'/g, '&#39;');
+        }
+
+        // URL 安全檢查：只允許 http(s) 和相對 URL
+        function safeUrl(url) {
+            if (!url) return '';
+            const trimmed = String(url).trim();
+            if (/^(https?:|\/|\.\/|\.\.\/)/i.test(trimmed)) return trimmed;
+            return '';
+        }
+
+        // 有房間碼才讀 localStorage 資料；沒房間碼用空白範本（等使用者選擇加入或建立）
+        let appData;
+        try {
+            const hasRoom = localStorage.getItem('okinawaRoom');
+            appData = hasRoom ? loadStorage('okinawaData', cloneDefault()) : cloneDefault();
+        } catch (err) {
+            console.error('appData 初始化失敗:', err);
+            appData = cloneDefault();
+        }
+        let editingDayId = null;
+
+        // ── 旅行天數工具 ──
+        function getTripDays() {
+            const t = appData.trip || {};
+            if (!t.startDate || !t.endDate) return 5; // 預設 5 天
+            const start = new Date(t.startDate);
+            const end   = new Date(t.endDate);
+            const diff  = Math.round((end - start) / 86400000) + 1;
+            return Math.max(1, diff);
+        }
+
+        // 取得某天的日期字串（MM/DD 週X）
+        function getDayDateStr(day) {
+            const t = appData.trip || {};
+            if (!t.startDate) return '';
+            const d = new Date(t.startDate);
+            d.setDate(d.getDate() + day - 1);
+            const mm  = String(d.getMonth() + 1).padStart(2, '0');
+            const dd  = String(d.getDate()).padStart(2, '0');
+            const wk  = ['日','一','二','三','四','五','六'][d.getDay()];
+            return `${mm}/${dd} (${wk})`;
+        }
+
+        // 取得某天是否為今天
+        // 更新 activity modal 的 Day 選項
+        function updateDayOptions() {
+            const numDays = getTripDays();
+            const sel = document.getElementById('activityDay');
+            const cur = sel.value;
+            sel.innerHTML = '';
+            for (let d = 1; d <= numDays; d++) {
+                const opt = document.createElement('option');
+                opt.value = d;
+                opt.textContent = `Day ${d}（${getDayDateStr(d)}）`;
+                sel.appendChild(opt);
+            }
+            sel.value = Math.min(parseInt(cur) || 1, numDays);
+        }
+
+        // ── 封面位置拖曳 ──
+        let bannerDragPos  = { x: 50, y: 50 };
+        let bannerDragging = false;
+        let bannerDragStart = null; // { clientX, clientY, posX, posY }
+
+        function updateBannerPosLabel() {
+            const lbl = document.getElementById('bannerPosLabel');
+            if (lbl) lbl.textContent = `位置 ${Math.round(bannerDragPos.x)}% , ${Math.round(bannerDragPos.y)}%`;
+        }
+
+        function applyDragPos() {
+            const prev = document.getElementById('bannerPreview');
+            if (prev) prev.style.backgroundPosition = `${bannerDragPos.x}% ${bannerDragPos.y}%`;
+            updateBannerPosLabel();
+        }
+
+        function resetBannerPos() {
+            bannerDragPos = { x: 50, y: 50 };
+            applyDragPos();
+        }
+
+        function initBannerDrag() {
+            const prev = document.getElementById('bannerPreview');
+            if (!prev) return;
+            const hint = document.getElementById('bannerDragHint');
+
+            // 顯示提示
+            prev.addEventListener('mouseenter', () => { if (hint) hint.style.opacity = '1'; });
+            prev.addEventListener('mouseleave', () => { if (!bannerDragging && hint) hint.style.opacity = '0'; });
+
+            // Mouse
+            prev.onmousedown = e => {
+                e.preventDefault();
+                bannerDragging = true;
+                bannerDragStart = { clientX: e.clientX, clientY: e.clientY, posX: bannerDragPos.x, posY: bannerDragPos.y };
+                prev.style.cursor = 'grabbing';
+                if (hint) hint.style.opacity = '0';
+            };
+            document.onmousemove = e => {
+                if (!bannerDragging || !bannerDragStart) return;
+                const rect  = prev.getBoundingClientRect();
+                const dx    = (e.clientX - bannerDragStart.clientX) / rect.width  * 100;
+                const dy    = (e.clientY - bannerDragStart.clientY) / rect.height * 100;
+                bannerDragPos.x = Math.max(0, Math.min(100, bannerDragStart.posX - dx));
+                bannerDragPos.y = Math.max(0, Math.min(100, bannerDragStart.posY - dy));
+                applyDragPos();
+            };
+            document.onmouseup = () => {
+                if (!bannerDragging) return;
+                bannerDragging = false;
+                prev.style.cursor = 'grab';
+            };
+
+            // Touch
+            prev.ontouchstart = e => {
+                e.preventDefault();
+                bannerDragging = true;
+                const t = e.touches[0];
+                bannerDragStart = { clientX: t.clientX, clientY: t.clientY, posX: bannerDragPos.x, posY: bannerDragPos.y };
+                if (hint) hint.style.opacity = '0';
+            };
+            prev.ontouchmove = e => {
+                e.preventDefault();
+                if (!bannerDragging || !bannerDragStart) return;
+                const rect = prev.getBoundingClientRect();
+                const t    = e.touches[0];
+                const dx   = (t.clientX - bannerDragStart.clientX) / rect.width  * 100;
+                const dy   = (t.clientY - bannerDragStart.clientY) / rect.height * 100;
+                bannerDragPos.x = Math.max(0, Math.min(100, bannerDragStart.posX - dx));
+                bannerDragPos.y = Math.max(0, Math.min(100, bannerDragStart.posY - dy));
+                applyDragPos();
+            };
+            prev.ontouchend = () => { bannerDragging = false; };
+        }
+
+        // ── 封面圖片 ──
+        let pendingBannerDataUrl = null; // 暫存上傳的 base64
+
+        function applyBannerToHeader(src, pos) {
+            const header = document.getElementById('mainHeader');
+            const p = pos || appData.bannerPosition || { x: 50, y: 50 };
+            if (src) {
+                header.style.backgroundImage    = `url("${src}")`;
+                header.style.backgroundPosition = `${p.x}% ${p.y}%`;
+                header.classList.add('has-bg-image');
+            } else {
+                header.style.backgroundImage    = '';
+                header.style.backgroundPosition = '';
+                header.classList.remove('has-bg-image');
+            }
+        }
+
+        function openBannerModal() {
+            pendingBannerDataUrl = null;
+            document.getElementById('bannerFile').value = '';
+            document.getElementById('bannerUrl').value = appData.bannerUrl || '';
+            // 讀取目前位置
+            bannerDragPos = appData.bannerPosition
+                ? { ...appData.bannerPosition }
+                : { x: 50, y: 50 };
+            // 顯示目前預覽
+            const cur = appData.bannerDataUrl || appData.bannerUrl || '';
+            const prev = document.getElementById('bannerPreview');
+            prev.style.backgroundImage    = cur ? `url("${cur}")` : 'linear-gradient(135deg,#00A8A8,#20C997)';
+            prev.style.backgroundPosition = `${bannerDragPos.x}% ${bannerDragPos.y}%`;
+            updateBannerPosLabel();
+            initBannerDrag();
+            openModal('bannerModal');
+        }
+
+        function previewBannerFile(e) {
+            const file = e.target.files[0];
+            if (!file) return;
+            const reader = new FileReader();
+            reader.onload = ev => {
+                pendingBannerDataUrl = ev.target.result;
+                const prev = document.getElementById('bannerPreview');
+                prev.style.backgroundImage    = `url("${pendingBannerDataUrl}")`;
+                prev.style.backgroundPosition = `${bannerDragPos.x}% ${bannerDragPos.y}%`;
+                document.getElementById('bannerUrl').value = '';
+            };
+            reader.readAsDataURL(file);
+        }
+
+        function previewBannerUrl(url) {
+            if (!url) return;
+            const prev = document.getElementById('bannerPreview');
+            prev.style.backgroundImage    = `url("${url}")`;
+            prev.style.backgroundPosition = `${bannerDragPos.x}% ${bannerDragPos.y}%`;
+            pendingBannerDataUrl = null;
+            document.getElementById('bannerFile').value = '';
+        }
+
+        function saveBanner() {
+            if (pendingBannerDataUrl) {
+                appData.bannerDataUrl = pendingBannerDataUrl;
+                appData.bannerUrl = '';
+            } else {
+                const url = document.getElementById('bannerUrl').value.trim();
+                appData.bannerUrl = url;
+                appData.bannerDataUrl = '';
+            }
+            appData.bannerPosition = { ...bannerDragPos };
+            saveData();
+            applyBannerToHeader(appData.bannerDataUrl || appData.bannerUrl, appData.bannerPosition);
+            closeModal('bannerModal');
+            showSuccessMessage('封面圖片已更新！');
+        }
+
+        function removeBanner() {
+            appData.bannerDataUrl = '';
+            appData.bannerUrl = '';
+            saveData();
+            applyBannerToHeader('');
+            closeModal('bannerModal');
+            showSuccessMessage('已移除封面圖片');
+        }
+
+        function initBanner() {
+            const src = appData.bannerDataUrl || appData.bannerUrl || '';
+            if (src) applyBannerToHeader(src, appData.bannerPosition);
+        }
+
+        // ── 旅行標題 ──
+        function renderTripHeader() {
+            const t = appData.trip || {};
+            const emoji = t.emoji || '🌏';
+            const title = t.title || '我的旅行';
+            document.getElementById('tripTitle').textContent = `${emoji} ${title}`;
+            document.title = `${emoji} ${title}`;
+            let info = '';
+            if (t.startDate && t.endDate) {
+                const fmt = d => d.replace(/-/g, '.');          // 2026-07-16 → 2026.07.16
+                const fmtShort = d => d.replace(/-/g, '.').slice(5); // → 07.16
+                info = `${fmt(t.startDate)} - ${fmtShort(t.endDate)}`;
+            }
+            if (t.description) info += (info ? ' | ' : '') + t.description;
+            document.getElementById('tripInfo').textContent = info || '';
+        }
+
+        function openTripModal() {
+            const t = appData.trip || {};
+            document.getElementById('tripEmoji').value       = t.emoji       || '';
+            document.getElementById('tripTitleInput').value  = t.title       || '';
+            document.getElementById('tripStartDate').value   = t.startDate   || '';
+            document.getElementById('tripEndDate').value     = t.endDate     || '';
+            document.getElementById('tripDescription').value = t.description || '';
+            openModal('tripModal');
+        }
+
+        function saveTripData(e) {
+            e.preventDefault();
+            appData.trip = {
+                emoji:       document.getElementById('tripEmoji').value.trim()      || '🌏',
+                title:       document.getElementById('tripTitleInput').value.trim() || '我的旅行',
+                startDate:   document.getElementById('tripStartDate').value,
+                endDate:     document.getElementById('tripEndDate').value,
+                description: document.getElementById('tripDescription').value.trim()
+            };
+            saveData();
+            renderTripHeader();
+            renderItinerary();
+            if (document.getElementById('map').classList.contains('active')) renderMap(currentMapDay);
+            closeModal('tripModal');
+            showSuccessMessage('旅行資訊已更新！');
+        }
+
+        // 活動編輯函數
+        // ── 資料結構修復：舊版資料自動補齊缺少的欄位 ──
+        function migrateData() {
+            const D = DEFAULT_DATA;
+
+            // trip
+            if (!appData.trip) {
+                appData.trip = { ...D.trip };
+            } else {
+                if (!appData.trip.emoji)       appData.trip.emoji       = D.trip.emoji;
+                if (!appData.trip.title)       appData.trip.title       = D.trip.title;
+                if (!appData.trip.startDate)   appData.trip.startDate   = D.trip.startDate;
+                if (!appData.trip.endDate)     appData.trip.endDate     = D.trip.endDate;
+                if (!appData.trip.description) appData.trip.description = D.trip.description;
+            }
+
+            // dayTitles
+            if (!appData.dayTitles || !Array.isArray(appData.dayTitles) || appData.dayTitles.length < 2) {
+                appData.dayTitles = D.dayTitles.map(d => d ? { ...d } : '');
+            }
+
+            // activities
+            if (!appData.activities || !Array.isArray(appData.activities)) {
+                appData.activities = D.activities.map(a => ({ ...a }));
+            }
+            // 每個 activity 補 images 欄位
+            appData.activities.forEach(a => {
+                if (a.id != null) a.id = String(a.id);
+                if (!a.images) a.images = [];
+                if (!a.transport) a.transport = { type: '', duration: '' };
+            });
+
+            // extraPlaces（額外景點）
+            if (!appData.extraPlaces || !Array.isArray(appData.extraPlaces)) {
+                appData.extraPlaces = [];
+            }
+            appData.extraPlaces.forEach(p => {
+                if (p.id != null) p.id = String(p.id);
+            });
+
+            // expenses
+            if (!appData.expenses || !Array.isArray(appData.expenses)) {
+                appData.expenses = D.expenses.map(e => ({ ...e }));
+            }
+            appData.expenses.forEach(e => {
+                if (e.id != null) e.id = String(e.id);
+                if (!e.category) e.category = '其他';
+            });
+
+            // checklists
+            if (!appData.checklists || !Array.isArray(appData.checklists)) {
+                appData.checklists = D.checklists.map(c => ({ ...c }));
+            }
+            appData.checklists.forEach(c => {
+                if (c.id != null) c.id = String(c.id);
+            });
+
+            // info
+            if (!appData.info) {
+                appData.info = { ...D.info, hotels: D.info.hotels.map(h => ({ ...h })) };
+            } else {
+                if (!appData.info.flightOut)    appData.info.flightOut    = { ...D.info.flightOut };
+                if (!appData.info.flightReturn) appData.info.flightReturn = { ...D.info.flightReturn };
+                // 補齊欄位
+                ['flightOut', 'flightReturn'].forEach(k => {
+                    const f = appData.info[k];
+                    if (f.flightName === undefined) f.flightName = '';
+                    if (f.date       === undefined) f.date       = '';
+                    if (f.image      === undefined) f.image      = '';
+                });
+                // 舊版是 hotel（單筆），轉換成 hotels 陣列
+                if (!appData.info.hotels || !Array.isArray(appData.info.hotels)) {
+                    if (appData.info.hotel) {
+                        appData.info.hotels = [{
+                            id: 1,
+                            name:      appData.info.hotel.name      || '',
+                            mapUrl:    '',
+                            platform:  '',
+                            bookingId: appData.info.hotel.booking   || appData.info.hotel.bookingId || '',
+                            checkIn:   D.info.hotels[0].checkIn,
+                            checkOut:  D.info.hotels[0].checkOut
+                        }];
+                        delete appData.info.hotel;
+                    } else {
+                        appData.info.hotels = D.info.hotels.map(h => ({ ...h }));
+                    }
+                }
+                // hotels id 統一為字串
+                if (Array.isArray(appData.info.hotels)) {
+                    appData.info.hotels.forEach(h => {
+                        if (h.id != null) h.id = String(h.id);
+                    });
+                }
+            }
+
+            // banner
+            if (!appData.bannerDataUrl) appData.bannerDataUrl = '';
+            if (!appData.bannerUrl)     appData.bannerUrl     = '';
+            if (!appData.bannerPosition) appData.bannerPosition = { x: 50, y: 50 };
+
+            // 舊版 checklist category 名稱遷移
+            if (Array.isArray(appData.checklists)) {
+                appData.checklists.forEach(item => {
+                    if (item.category === '代購') item.category = '待購';
+                });
+            }
+        }
+
+        function init() {
+            migrateData();
+            initBanner();
+            renderTripHeader();
+            renderItinerary();
+            renderExpense();
+            renderChecklist();
+            renderInfo();
+        }
+
+        // 標籤頁切換
+        function switchTab(tabName, el) {
+            document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+            document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+            document.getElementById(tabName).classList.add('active');
+            // 優先用傳入的 el，否則找對應的 tab button
+            const tabBtn = el || document.querySelector(`.tab[onclick*="'${tabName}'"]`);
+            if (tabBtn) tabBtn.classList.add('active');
+            if (tabName === 'map')  renderMap(currentMapDay);
+            if (tabName === 'info') fetchWeather();
+        }
+
+        // ── 活動標籤 ──
+        const ACTIVITY_TAGS = {
+            'spot':      '景點',
+            'food':      '餐廳',
+            'transport': '交通',
+            'hotel':     '住宿',
+            'shopping':  '購物',
+            'activity':  '活動',
+        };
+
+        // ── 活動圖片暫存（需在 MODAL_CONFIG 前宣告）──
+        let pendingActivityImages = [];
+
+        // ── 實體配置表 ──
+        const ENTITY_CONFIG = {
+            activity:  { key: 'activities',  label: '活動', path: null,   render: () => renderItinerary() },
+            expense:   { key: 'expenses',    label: '費用', path: null,   render: () => renderExpense() },
+            checklist: { key: 'checklists',  label: '項目', path: null,   render: () => renderChecklist() },
+            hotel:     { key: 'hotels',      label: '飯店', path: 'info', render: () => renderInfo() },
+            place:     { key: 'extraPlaces', label: '景點', path: null,   render: () => renderMap(currentMapDay) },
+        };
+
+        // ── Modal 配置表 ──
+        const MODAL_CONFIG = {
+            activity: {
+                modalId:    'activityModal',
+                titleEl:    'activityModalTitle',
+                addTitle:   '新增活動',
+                editTitle:  '編輯活動',
+                editingVar: 'editingId',
+                dataKey:    'activities',
+                fields: {
+                    activityDay:        { key: 'day',        default: 1  },
+                    activityTag:        { key: 'tag',        default: '' },
+                    activityCheckTime:  { key: 'checkTime',  default: '' },
+                    activityCheckLabel: { key: 'checkLabel', default: '' },
+                    activityIcon:       { key: 'icon',       default: '' },
+                    activityTitle:      { key: 'title',      default: '' },
+                    activityLocation:   { key: 'location',   default: '' },
+                    activityNotes:      { key: 'notes',      default: '' },
+                },
+                transform:  { day: v => parseInt(v) || 1 },
+                beforeOpen: () => updateDayOptions(),
+                afterOpen: (item) => {
+                    // checkTime 標準化（舊資料可能是 H:MM 等非標準格式）
+                    document.getElementById('activityCheckTime').value = normalizeHHMM(item?.checkTime || '');
+                    const { start, end, note } = parseTimeString(item?.time || '');
+                    document.getElementById('activityTimeStart').value         = start;
+                    document.getElementById('activityTimeEnd').value           = end;
+                    document.getElementById('activityTimeNote').value          = note;
+                    document.getElementById('activityTransportType').value     = item?.transport?.type     || '';
+                    document.getElementById('activityTransportDuration').value = item?.transport?.duration || '';
+                    pendingActivityImages = item ? [...(item.images || [])] : [];
+                    renderModalImgPreview();
+                    if (!item) {
+                        const d = (typeof currentItineraryDay !== 'undefined' && currentItineraryDay !== 'all')
+                            ? currentItineraryDay : 1;
+                        document.getElementById('activityDay').value = d;
+                    }
+                },
+                beforeSave: (item) => {
+                    item.checkTime = normalizeHHMM(item.checkTime); // 儲存前也標準化
+                    item.time      = buildTimeString();
+                    item.images    = [...pendingActivityImages];
+                    item.transport = {
+                        type:     document.getElementById('activityTransportType').value     || '',
+                        duration: document.getElementById('activityTransportDuration').value || '',
+                    };
+                },
+                render: () => renderItinerary(),
+            },
+            expense: {
+                modalId:    'expenseModal',
+                titleEl:    'expenseModalTitle',
+                addTitle:   '新增費用',
+                editTitle:  '編輯費用',
+                editingVar: 'editingId',
+                dataKey:    'expenses',
+                fields: {
+                    expenseIcon:     { key: 'icon',     default: '' },
+                    expenseName:     { key: 'name',     default: '' },
+                    expenseDetail:   { key: 'detail',   default: '' },
+                    expenseAmount:   { key: 'amount',   default: '' },
+                    expenseCategory: { key: 'category', default: '其他' },
+                },
+                transform: { amount: v => parseInt(v) || 0 },
+                render: () => renderExpense(),
+            },
+            checklist: {
+                modalId:    'checklistModal',
+                titleEl:    'checklistModalTitle',
+                addTitle:   '新增清單項目',
+                editTitle:  '編輯清單項目',
+                editingVar: 'editingId',
+                dataKey:    'checklists',
+                fields: {
+                    checklistCategory: { key: 'category', default: '準備' },
+                    checklistContent:  { key: 'content',  default: '' },
+                },
+                // 保留 completed 欄位
+                preserve: (oldItem) => ({ completed: oldItem ? oldItem.completed : false }),
+                render: () => renderChecklist(),
+            },
+            hotel: {
+                modalId:    'hotelModal',
+                titleEl:    'hotelModalTitle',
+                addTitle:   '🏨 新增飯店',
+                editTitle:  '🏨 編輯飯店',
+                editingVar: 'editingHotelId',
+                dataPath:   'info',   // appData.info.hotels
+                dataKey:    'hotels',
+                fields: {
+                    hotelName:      { key: 'name',      default: '' },
+                    hotelMapUrl:    { key: 'mapUrl',    default: '' },
+                    hotelPlatform:  { key: 'platform',  default: '' },
+                    hotelBookingId: { key: 'bookingId', default: '' },
+                    hotelCheckIn:   { key: 'checkIn',   default: '' },
+                    hotelCheckOut:  { key: 'checkOut',  default: '' },
+                },
+                render: () => renderInfo(),
+            },
+            place: {
+                modalId:    'placeModal',
+                titleEl:    'placeModalTitle',
+                addTitle:   '📌 新增景點',
+                editTitle:  '📌 編輯景點',
+                editingVar: 'editingPlaceId',
+                dataKey:    'extraPlaces',
+                fields: {
+                    placeIcon:     { key: 'icon',     default: '📍' },
+                    placeName:     { key: 'name',     default: '' },
+                    placeLocation: { key: 'location', default: '' },
+                    placeNotes:    { key: 'notes',    default: '' },
+                    placeDay:      { key: 'day',      default: '0' },
+                },
+                transform:  { day: v => parseInt(v) || 0 },
+                beforeOpen: () => updatePlaceDayOptions(),
+                render:     () => renderMap(currentMapDay),
+            },
+        };
+
+        // ── 通用 Modal 狀態管理 ──
+        // 用明確的物件管理編輯狀態，不依賴 window[] 存取
+        const editingState = {
+            editingId:      null,
+            editingHotelId: null,
+            editingPlaceId: null,
+            get(varName) { return this[varName] ?? null; },
+            set(varName, val) { if (varName in this) this[varName] = val; },
+            clear(varName) { if (varName in this) this[varName] = null; },
+        };
+
+        // ── 通用開啟 Modal（新增 / 編輯）──
+        function openItem(entityType, id = null) {
+            const cfg = MODAL_CONFIG[entityType];
+            if (!cfg) return console.error('未知 modal 實體:', entityType);
+
+            // 設定編輯狀態
+            editingState.set(cfg.editingVar, id);
+
+            // 取得資料
+            const arr = cfg.dataPath
+                ? appData[cfg.dataPath][cfg.dataKey]
+                : appData[cfg.dataKey];
+            const item = id ? (arr || []).find(i => i.id === id) : null;
+
+            // 設定 Modal 標題
+            document.getElementById(cfg.titleEl).textContent =
+                id ? cfg.editTitle : cfg.addTitle;
+
+            // 填入欄位
+            Object.entries(cfg.fields).forEach(([elId, fieldCfg]) => {
+                const el = document.getElementById(elId);
+                if (!el) return;
+                el.value = item ? (item[fieldCfg.key] ?? fieldCfg.default) : fieldCfg.default;
+            });
+
+            // 前置處理（如更新 Day 選單）
+            if (cfg.beforeOpen) cfg.beforeOpen();
+
+            // place 新增時：placeDay 預設為目前篩選的天
+            if (entityType === 'place' && !id) {
+                const el = document.getElementById('placeDay');
+                if (el) el.value = currentMapDay === 'all' ? '0' : String(currentMapDay);
+            }
+
+            // 後置處理（如拆解 time、載入 transport、圖片）
+            if (cfg.afterOpen) cfg.afterOpen(item);
+
+            openModal(cfg.modalId);
+        }
+
+        // ── 通用儲存 Modal ──
+        function saveItem(entityType, e) {
+            e.preventDefault();
+            const cfg = MODAL_CONFIG[entityType];
+            if (!cfg) return console.error('未知 modal 實體:', entityType);
+
+            const currentId = editingState.get(cfg.editingVar);
+
+            try {
+                // 從欄位收集資料
+                const item = { id: currentId || generateId() };
+                Object.entries(cfg.fields).forEach(([elId, fieldCfg]) => {
+                    const el = document.getElementById(elId);
+                    let val = el ? el.value : fieldCfg.default;
+                    if (cfg.transform && cfg.transform[fieldCfg.key]) {
+                        val = cfg.transform[fieldCfg.key](val);
+                    }
+                    item[fieldCfg.key] = val;
+                });
+
+                // 儲存前特殊處理（如組裝 time、transport、images）
+                if (cfg.beforeSave) cfg.beforeSave(item);
+
+                // 保留特殊欄位（如 completed）
+                if (cfg.preserve) {
+                    const preserveArr = cfg.dataPath
+                        ? appData[cfg.dataPath][cfg.dataKey]
+                        : appData[cfg.dataKey];
+                    const oldItem = currentId ? (preserveArr || []).find(i => i.id === currentId) : null;
+                    Object.assign(item, cfg.preserve(oldItem));
+                }
+
+                // 寫入資料
+                if (cfg.dataPath && !appData[cfg.dataPath][cfg.dataKey]) {
+                    appData[cfg.dataPath][cfg.dataKey] = [];
+                } else if (!cfg.dataPath && !appData[cfg.dataKey]) {
+                    appData[cfg.dataKey] = [];
+                }
+
+                const arr = cfg.dataPath
+                    ? appData[cfg.dataPath][cfg.dataKey]
+                    : appData[cfg.dataKey];
+
+                if (currentId) {
+                    const idx = arr.findIndex(i => i.id === currentId);
+                    if (idx > -1) arr[idx] = item;
+                    else arr.push(item);
+                } else {
+                    arr.push(item);
+                }
+
+                saveData();
+                cfg.render();
+                showSuccessMessage(`${ENTITY_CONFIG[entityType]?.label || entityType}已保存！`);
+            } catch(err) {
+                console.error('saveItem error:', err);
+                showSuccessMessage('保存時發生錯誤，請重試');
+            } finally {
+                // 無論成功失敗，都清狀態並關閉 modal
+                editingState.clear(cfg.editingVar);
+                closeModal(cfg.modalId);
+            }
+        }
+
+        // ── 通用 ID 產生器 ──
+        function generateId() {
+            return `${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
+        }
+
+        // ── 通用刪除函數 ──
+        function deleteItem(entityType, id) {
+            const cfg = ENTITY_CONFIG[entityType];
+            if (!cfg) return console.error('未知實體:', entityType);
+            if (!confirm(`確定要刪除這個${cfg.label}嗎？`)) return;
+            const arr = cfg.path ? appData[cfg.path][cfg.key] : appData[cfg.key];
+            const idx = arr.findIndex(item => item.id === id);
+            if (idx === -1) return;
+            arr.splice(idx, 1);
+            saveData();
+            cfg.render();
+            showSuccessMessage(`${cfg.label}已刪除！`);
+        }
+
+        // 保存數據到 localStorage
+        function saveData() {
+            saveStorage('okinawaData', appData);
+        }
+
+        // 渲染行程
+        let currentItineraryDay = 'all';
+
+        function showRenderError(pageName) {
+            const containers = {
+                '行程': 'itinerary-list', '費用': 'expense-list',
+                '資訊': 'info-content',   '地圖': 'map-list'
+            };
+            const id = containers[pageName];
+            const el = id && document.getElementById(id);
+            if (el) {
+                el.innerHTML = `<div style="padding:40px 20px;text-align:center;color:#888;">
+                    <div style="font-size:36px;margin-bottom:8px;">⚠️</div>
+                    <div style="font-weight:600;margin-bottom:4px;">${pageName}頁載入失敗</div>
+                    <div style="font-size:12px;color:#aaa;">資料格式可能異常，請重新整理試試</div>
+                </div>`;
+            }
+        }
+
+        function renderItinerary() {
+            try { _renderItinerary(); }
+            catch(e) { console.error('renderItinerary error:', e); showRenderError('行程'); }
+        }
+        function _renderItinerary() {
+            const scrollY = window.scrollY; // render 前記住捲動位置
+            const container = document.getElementById('itinerary-list');
+            const filterEl  = document.getElementById('itinerary-filter');
+            const days = {};
+            
+            appData.activities.forEach(activity => {
+                if (!days[activity.day]) days[activity.day] = [];
+                days[activity.day].push(activity);
+            });
+
+            const dayDates  = [''];
+            const dayFullDates = [''];
+            const numDays = getTripDays();
+            const startStr = appData.trip.startDate;
+            for (let d = 1; d <= numDays; d++) {
+                dayDates.push(getDayDateStr(d));
+                if (startStr) {
+                    const dt = new Date(startStr);
+                    dt.setDate(dt.getDate() + d - 1);
+                    dayFullDates.push(dt.toISOString().slice(0, 10));
+                } else {
+                    dayFullDates.push(''); // 無起始日期則不比對「今天」
+                }
+            }
+            const todayStr = new Date().toISOString().slice(0, 10);
+
+            // ── Filter 下拉選單 ──
+            if (filterEl) {
+                let opts = `<option value="all">📅 全部行程</option>`;
+                for (let d = 1; d <= numDays; d++) {
+                    const dt = appData.dayTitles[d];
+                    const isToday = dayFullDates[d] === todayStr;
+                    opts += `<option value="${d}" ${currentItineraryDay === d ? 'selected' : ''}>
+                        ${isToday ? '📍 ' : ''}Day ${d} ${dt ? dt.emoji : ''} ${dt ? dt.title : ''} · ${dayDates[d]}
+                    </option>`;
+                }
+                filterEl.innerHTML = `<select class="day-select" onchange="filterItinerary(this.value === 'all' ? 'all' : parseInt(this.value))">${opts}</select>`;
+                // 設定目前選中值
+                filterEl.querySelector('select').value = currentItineraryDay === 'all' ? 'all' : String(currentItineraryDay);
+            }
+
+            // ── 要顯示的天 ──
+            const targetDays = currentItineraryDay === 'all'
+                ? Array.from({ length: numDays }, (_, i) => i + 1)
+                : [currentItineraryDay];
+
+            let html = '';
+            for (const day of targetDays) {
+                const activities  = days[day] || [];
+                const dayTitle    = appData.dayTitles[day] || { emoji: '📅', title: `Day ${day}` };
+                const isToday     = dayFullDates[day] === todayStr;
+
+                // ── Day header ──
+                html += `
+                <div class="day-card">
+                    <div class="day-header">
+                        <span class="day-badge${isToday ? ' today' : ''}">
+                            ${isToday ? '📍 今天' : `Day ${day}`}
+                        </span>
+                        <span class="day-title" onclick="editDayTitle(${day})">
+                            ${escapeHtml(dayTitle.emoji)} ${escapeHtml(dayTitle.title)}
+                            <span class="edit-pencil" style="font-size:11px;opacity:0.4;">✏️</span>
+                        </span>
+                        <span class="day-date">${dayDates[day]}</span>
+                    </div>
+                    <div class="timeline">
+                `;
+
+                // ── 活動 + 交通連接 ──
+                activities.forEach((a, idx) => {
+                    // 本活動有 transport → 在它「之前」插入連接線（代表從上一站來）
+                    if (idx > 0 && a.transport && (a.transport.type || a.transport.duration)) {
+                        const t = a.transport;
+                        html += `
+                        <div class="transport-link">
+                            <div class="transport-info">
+                                ${t.type     ? `<span class="transport-type">${escapeHtml(t.type)}</span>` : ''}
+                                ${t.type && t.duration ? `<span class="transport-sep">·</span>` : ''}
+                                ${t.duration ? `<span class="transport-duration">約 ${escapeHtml(t.duration)}</span>` : ''}
+                            </div>
+                        </div>`;
+                    }
+
+                    html += `
+                        <div class="activity" data-id="${a.id}" data-day="${a.day}">
+                            <div class="drag-handle" title="長按拖拉排序">⋮⋮</div>
+                            <div class="sort-btns">
+                                <button class="sort-btn" onclick="moveActivity('${a.id}',${a.day},-1)\"
+                                    ${idx === 0 ? 'disabled' : ''} title="往上移">▲</button>
+                                <button class="sort-btn" onclick="moveActivity('${a.id}',${a.day},1)\"
+                                    ${idx === activities.length - 1 ? 'disabled' : ''} title="往下移">▼</button>
+                            </div>
+                            <div class="activity-header">
+                                <div class="activity-icon">${escapeHtml(a.icon)}</div>
+                                <div class="activity-content">
+                                    ${a.checkTime ? `<div class="activity-check-time">⏰ ${escapeHtml(a.checkTime)}${a.checkLabel ? `<span class="activity-check-label">${escapeHtml(a.checkLabel)}</span>` : ''}</div>` : ''}
+                                    <div class="activity-title">${escapeHtml(a.title)}${a.tag ? `<span class="activity-tag activity-tag-${a.tag}">${escapeHtml(ACTIVITY_TAGS[a.tag] || a.tag)}</span>` : ''}</div>
+                                    ${a.time ? `<div class="activity-time">🕐 ${escapeHtml(a.time)}</div>` : ''}
+                                    <div class="activity-location" data-loc="${escapeHtml(a.location || '')}" onclick="openMap(this.dataset.loc)">📍 ${escapeHtml(a.location)}</div>
+                                    ${a.notes ? `<div class="activity-notes">📝 ${escapeHtml(a.notes)}</div>` : ''}
+                                    ${(a.images && a.images.length) ? `
+                                    <div class="activity-images">
+                                        ${a.images.map((img, i) => `
+                                            <img class="activity-thumb" src="${img}" alt=""
+                                                onclick="openLightbox(${a.id}, ${i})">
+                                        `).join('')}
+                                        <div class="activity-thumb-add" onclick="triggerActivityImgUpload(${a.id})" title="新增圖片">＋</div>
+                                    </div>` : `
+                                    <div class="activity-images">
+                                        <div class="activity-thumb-add" onclick="triggerActivityImgUpload(${a.id})" title="新增圖片">📎</div>
+                                    </div>`}
+                                    <div class="activity-buttons">
+                                        <button class="btn-sm btn-edit"   onclick="openItem('activity', '${a.id}')\">✏️ 編輯</button>
+                                        <button class="btn-sm btn-delete" onclick="deleteItem('activity', '${a.id}')\">🗑️ 刪除</button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                });
+
+                // ── 空白天引導 ──
+                if (activities.length === 0) {
+                    html += `
+                        <div class="empty-day-hint">
+                            <div class="empty-day-icon">🗓️</div>
+                            <div class="empty-day-text">這天還沒有行程</div>
+                            <button class="empty-day-btn" onclick="openAddActivityForDay(${day})">＋ 新增活動</button>
+                        </div>
+                    `;
+                }
+
+                html += `</div></div>`; // close .timeline + .day-card
+            }
+            container.innerHTML = html;
+            bindDragEvents();
+            requestAnimationFrame(() => window.scrollTo(0, scrollY)); // 還原捲動位置
+        }
+        // ── 圓餅圖顏色 ──
+        const CATEGORY_COLORS = {
+            '交通': '#00A8A8', '住宿': '#20C997', '餐飲': '#FF9F43',
+            '活動': '#48DBFB', '購物': '#FF6B9D', '其他': '#A29BFE'
+        };
+
+        let splitPeople = parseInt(localStorage.getItem('okinawaSplit') || '2');
+
+        function renderExpense() {
+            try { _renderExpense(); }
+            catch(e) { console.error('renderExpense error:', e); showRenderError('費用'); }
+        }
+        function _renderExpense() {
+            const container      = document.getElementById('expense-list');
+            const totalContainer = document.getElementById('expense-total');
+            const chartContainer = document.getElementById('expense-chart');
+            const splitContainer = document.getElementById('expense-split');
+
+            let html = '';
+            let total = 0;
+            const catTotals = {};
+
+            appData.expenses.forEach(expense => {
+                const cat = expense.category || '其他';
+                catTotals[cat] = (catTotals[cat] || 0) + expense.amount;
+                total += expense.amount;
+
+                const color = CATEGORY_COLORS[cat] || '#ccc';
+                html += `
+                    <div class="expense-item">
+                        <div class="expense-label">
+                            <div class="expense-icon">${escapeHtml(expense.icon)}</div>
+                            <div class="expense-info">
+                                <div class="expense-name">${escapeHtml(expense.name)}
+                                    <span style="display:inline-block;background:${color}22;color:${color};font-size:10px;font-weight:700;padding:1px 7px;border-radius:8px;margin-left:5px;vertical-align:middle;">${escapeHtml(cat)}</span>
+                                </div>
+                                <div class="expense-detail">${escapeHtml(expense.detail)}</div>
+                            </div>
+                        </div>
+                        <div style="display:flex;align-items:center;gap:8px;">
+                            <div class="expense-amount">NT$${expense.amount.toLocaleString()}</div>
+                            <button class="btn-sm btn-edit" onclick="openItem('expense', '${expense.id}')\">✏️</button>
+                            <button class="btn-sm btn-delete" onclick="deleteItem('expense', '${expense.id}')\">🗑️</button>
+                        </div>
+                    </div>`;
+            });
+
+            container.innerHTML = html;
+
+            // ── 總計 ──
+            totalContainer.innerHTML = `
+                <div class="expense-total">
+                    <div class="expense-total-label">已排定花費小計</div>
+                    <div class="expense-total-amount">NT$${total.toLocaleString()}</div>
+                </div>`;
+
+            // ── 圓餅圖 ──
+            chartContainer.innerHTML = total > 0 ? buildPieChart(catTotals, total) : '';
+
+            // ── 分攤 ──
+            const perPerson = splitPeople > 0 ? Math.ceil(total / splitPeople) : total;
+            splitContainer.innerHTML = `
+                <div class="split-card">
+                    <div class="split-header">
+                        <span class="split-title">👥 人數分攤</span>
+                        <div class="split-input-wrap">
+                            <span>人數</span>
+                            <input class="split-people" type="number" min="1" max="20" value="${splitPeople}"
+                                oninput="splitPeople=Math.max(1,parseInt(this.value)||1);localStorage.setItem('okinawaSplit',splitPeople);renderExpense()">
+                        </div>
+                    </div>
+                    <div class="split-result">
+                        <div class="split-per-person">NT$${perPerson.toLocaleString()}</div>
+                        <div class="split-label">/ 人（共 ${splitPeople} 人）</div>
+                    </div>
+                </div>`;
+        }
+
+        function buildPieChart(catTotals, total) {
+            const entries = Object.entries(catTotals).sort((a,b) => b[1]-a[1]);
+            const r = 50, cx = 55, cy = 55;
+            let startAngle = -90;
+            let slices = '';
+
+            entries.forEach(([cat, amt]) => {
+                const pct   = amt / total;
+                const angle = pct * 360;
+                const end   = startAngle + angle;
+                const large = angle > 180 ? 1 : 0;
+                const toRad = d => d * Math.PI / 180;
+                const x1 = cx + r * Math.cos(toRad(startAngle));
+                const y1 = cy + r * Math.sin(toRad(startAngle));
+                const x2 = cx + r * Math.cos(toRad(end));
+                const y2 = cy + r * Math.sin(toRad(end));
+                const color = CATEGORY_COLORS[cat] || '#ccc';
+                slices += `<path d="M${cx},${cy} L${x1.toFixed(2)},${y1.toFixed(2)} A${r},${r} 0 ${large},1 ${x2.toFixed(2)},${y2.toFixed(2)} Z" fill="${color}" stroke="white" stroke-width="1.5"/>`;
+                startAngle = end;
+            });
+
+            const legendItems = entries.map(([cat, amt]) => {
+                const pct   = Math.round(amt / total * 100);
+                const color = CATEGORY_COLORS[cat] || '#ccc';
+                return `<div class="legend-item">
+                    <div class="legend-dot" style="background:${color}"></div>
+                    <span class="legend-label">${cat}</span>
+                    <span class="legend-pct">${pct}%</span>
+                    <span class="legend-amt">NT$${amt.toLocaleString()}</span>
+                </div>`;
+            }).join('');
+
+            return `
+                <div class="chart-card">
+                    <div class="chart-title">📊 費用分佈</div>
+                    <div class="chart-body">
+                        <div class="pie-wrap">
+                            <svg viewBox="0 0 110 110">${slices}</svg>
+                        </div>
+                        <div class="legend-list">${legendItems}</div>
+                    </div>
+                </div>`;
+        }
+
+        // 渲染清單
+        function renderChecklist() {
+            try { _renderChecklist(); }
+            catch(e) { console.error('renderChecklist error:', e); showRenderError('清單'); }
+        }
+        function _renderChecklist() {
+            const container = document.getElementById('checklist-list');
+            const categories = {};
+
+            appData.checklists.forEach(item => {
+                if (!categories[item.category]) categories[item.category] = [];
+                categories[item.category].push(item);
+            });
+
+            let html = '';
+            const categoryEmojis = { '準備': '✈️', '打包': '🎒', '確認': '📱', '待購': '🛍️', '代購': '🛍️' };
+            const categoryLabels = { '準備': '行前準備', '打包': '行前打包', '確認': '行程確認', '待購': '待購清單', '代購': '待購清單' };
+
+            for (const [category, items] of Object.entries(categories)) {
+                const emoji = categoryEmojis[category] || '📋';
+                const label = categoryLabels[category] || category;
+                html += `<h3 style="margin-top: 16px; margin-bottom: 12px; font-size: 14px; font-weight: 700;">${emoji} ${label}</h3>`;
+                
+                items.forEach(item => {
+                    html += `
+                        <div class="checklist-item ${item.completed ? 'completed' : ''}" data-id="${item.id}" data-category="${escapeHtml(item.category)}">
+                            <span class="checklist-drag-handle" title="長按拖拉排序">⋮⋮</span>
+                            <input type="checkbox" ${item.completed ? 'checked' : ''} onchange="toggleChecklistItem('${item.id}')">
+                            <span class="checklist-label" onclick="toggleChecklistItem('${item.id}')">${escapeHtml(item.content)}</span>
+                            <div class="checklist-actions">
+                                <button type="button" class="btn-sm btn-edit" onclick="openItem('checklist', '${item.id}')">✏️</button>
+                                <button type="button" class="btn-sm btn-delete" onclick="deleteItem('checklist', '${item.id}')">🗑️</button>
+                            </div>
+                        </div>
+                    `;
+                });
+            }
+
+            container.innerHTML = html;
+            bindChecklistDragEvents();
+        }
+
+        // 渲染資訊
+        function renderInfo() {
+            try { _renderInfo(); }
+            catch(e) { console.error('renderInfo error:', e); showRenderError('資訊'); }
+        }
+        function _renderInfo() {
+            const container = document.getElementById('info-content');
+            const info = appData.info;
+
+            let html = `
+                <div id="weather-in-info" style="background:linear-gradient(135deg,#006B7D,#00A8A8);border-radius:14px;padding:14px 16px;margin-bottom:16px;color:white;display:flex;align-items:center;gap:14px;min-height:56px;">
+                    <div style="color:rgba(255,255,255,0.7);font-size:12px;width:100%;text-align:center;">⛅ 載入天氣中…</div>
+                </div>
+                <h3 style="margin-bottom: 12px; font-size: 14px; font-weight: 700;">✈️ 飛行資訊</h3>
+
+                ${['flightOut', 'flightReturn'].map((key, i) => {
+                    const f = info[key] || {};
+                    const label  = i === 0 ? '🛫 去程' : '🛬 回程';
+                    const dateStr = f.date ? new Date(f.date).toLocaleDateString('zh-TW', { month: 'long', day: 'numeric', weekday: 'short' }) : '';
+                    return `
+                    <div style="background:#f8fffe;border:1.5px solid var(--border);border-radius:12px;padding:14px;margin-bottom:12px;">
+                        <div style="font-size:13px;font-weight:700;color:var(--primary);margin-bottom:8px;">
+                            ${label}
+                            ${dateStr ? `<span style="font-weight:400;color:#666;margin-left:8px;">${dateStr}</span>` : ''}
+                            ${f.flightName ? `<span style="font-weight:600;color:var(--dark);margin-left:6px;">${escapeHtml(f.flightName)}</span>` : ''}
+                        </div>
+                        ${f.image
+                            ? `<img src="${f.image}" style="width:100%;border-radius:8px;max-height:200px;object-fit:cover;">`
+                            : `<div style="border:1.5px dashed var(--border);border-radius:8px;padding:20px;text-align:center;color:#bbb;font-size:12px;">尚未上傳機票照片</div>`
+                        }
+                    </div>`;
+                }).join('')}
+
+                <h3 style="margin-top: 4px; margin-bottom: 12px; font-size: 14px; font-weight: 700;">🏨 住宿資訊</h3>
+                ${(info.hotels || []).map(h => {
+                    const nights = h.checkIn && h.checkOut
+                        ? Math.round((new Date(h.checkOut) - new Date(h.checkIn)) / 86400000)
+                        : null;
+                    return `
+                    <div style="background:white;border:1.5px solid #eef0f0;border-radius:14px;padding:14px 16px;margin-bottom:12px;box-shadow:0 2px 8px rgba(0,0,0,0.05);">
+                        <div style="display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:10px;">
+                            <div style="font-size:14px;font-weight:800;color:var(--dark);flex:1;">${escapeHtml(h.name)}</div>
+                            <div style="display:flex;gap:6px;flex-shrink:0;margin-left:8px;">
+                                ${safeUrl(h.mapUrl) ? `<a href="${escapeHtml(h.mapUrl)}" target="_blank" rel="noopener" style="background:var(--light);border:1px solid var(--border);border-radius:8px;padding:4px 8px;font-size:11px;font-weight:700;color:var(--secondary);text-decoration:none;">🗺️ 地圖</a>` : ''}
+                                <button class="btn-sm btn-edit" onclick="openItem('hotel', '${h.id}')\">✏️</button>
+                                <button class="btn-sm btn-delete" onclick="deleteItem('hotel', '${h.id}')\">🗑️</button>
+                            </div>
+                        </div>
+                        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;font-size:12px;">
+                            ${h.checkIn ? `<div style="background:var(--light);padding:8px 10px;border-radius:8px;">
+                                <div style="color:#aaa;font-size:10px;margin-bottom:2px;">入住</div>
+                                <div style="font-weight:700;color:var(--dark);">${escapeHtml(h.checkIn)}</div>
+                            </div>` : ''}
+                            ${h.checkOut ? `<div style="background:var(--light);padding:8px 10px;border-radius:8px;">
+                                <div style="color:#aaa;font-size:10px;margin-bottom:2px;">退房${nights ? ` · ${nights}晚` : ''}</div>
+                                <div style="font-weight:700;color:var(--dark);">${escapeHtml(h.checkOut)}</div>
+                            </div>` : ''}
+                            ${h.platform ? `<div style="background:var(--light);padding:8px 10px;border-radius:8px;">
+                                <div style="color:#aaa;font-size:10px;margin-bottom:2px;">訂房平台</div>
+                                <div style="font-weight:700;color:var(--dark);">${escapeHtml(h.platform)}</div>
+                            </div>` : ''}
+                            ${h.bookingId ? `<div style="background:var(--light);padding:8px 10px;border-radius:8px;">
+                                <div style="color:#aaa;font-size:10px;margin-bottom:2px;">訂單編號</div>
+                                <div style="font-weight:700;color:var(--dark);font-size:11px;word-break:break-all;">${escapeHtml(h.bookingId)}</div>
+                            </div>` : ''}
+                        </div>
+                    </div>`;
+                }).join('')}
+            `;
+
+            container.innerHTML = html;
+        }
+
+        // ── time 字串工具 ──
+        // 統一格式：'HH:MM - HH:MM | 備註'，三段皆為選填
+
+        // 將任意時間字串標準化為 HH:MM（不合法回傳空字串）
+        function normalizeHHMM(s) {
+            if (!s) return '';
+            const m = String(s).trim().match(/^(\d{1,2}):(\d{1,2})$/);
+            if (!m) return '';
+            const h = parseInt(m[1]), min = parseInt(m[2]);
+            if (h < 0 || h > 23 || min < 0 || min > 59) return '';
+            return `${String(h).padStart(2, '0')}:${String(min).padStart(2, '0')}`;
+        }
+
+        // 解析 time 字串 → { start, end, note }
+        function parseTimeString(str) {
+            if (!str) return { start: '', end: '', note: '' };
+            const parts = String(str).split('|');
+            const timePart = parts[0].trim();
+            const note = parts.slice(1).join('|').trim();
+            // 支援 hyphen (-) 或 en-dash (–) 兩種分隔
+            const timeParts = timePart.split(/[-–]/).map(s => s.trim());
+            return {
+                start: normalizeHHMM(timeParts[0] || ''),
+                end:   normalizeHHMM(timeParts[1] || ''),
+                note,
+            };
+        }
+
+        // 組合 time picker → 單一顯示字串
+        function buildTimeString() {
+            const start = normalizeHHMM(document.getElementById('activityTimeStart').value);
+            const end   = normalizeHHMM(document.getElementById('activityTimeEnd').value);
+            const note  = document.getElementById('activityTimeNote').value.trim();
+            let t = '';
+            if (start && end)        t = `${start} - ${end}`;
+            else if (start)          t = start;
+            else if (end)            t = end;  // 只填結束時間也保留
+            if (note) t += (t ? ' | ' : '') + note;
+            return t;
+        }
+
+        // ── 活動圖片 ──
+        let lightboxActivityId = null;
+        let lightboxIndex = 0;
+        let uploadTargetId = null;
+
+        function renderModalImgPreview() {
+            const list = document.getElementById('modalImgPreviewList');
+            list.innerHTML = pendingActivityImages.map((src, i) => `
+                <div style="position:relative;flex-shrink:0;">
+                    <img src="${src}" style="width:52px;height:52px;border-radius:8px;object-fit:cover;border:2px solid var(--border);">
+                    <button onclick="removeModalImg(${i})"
+                        style="position:absolute;top:-6px;right:-6px;width:18px;height:18px;border-radius:50%;background:#ff5050;color:white;border:none;font-size:11px;cursor:pointer;display:flex;align-items:center;justify-content:center;">✕</button>
+                </div>
+            `).join('');
+        }
+
+        function removeModalImg(i) {
+            pendingActivityImages.splice(i, 1);
+            renderModalImgPreview();
+        }
+
+        // ── 圖片壓縮（上傳前自動縮小到最大 1024px，品質 0.82）──
+        function compressImage(file, maxSize = 1024, quality = 0.82) {
+            return new Promise((resolve, reject) => {
+                // 前置檢查：超過 10MB 直接拒絕（避免記憶體爆掉）
+                if (file.size > 10 * 1024 * 1024) {
+                    alert('⚠️ 圖片太大（超過 10MB），請選擇較小的圖片。');
+                    reject(new Error('圖片超過 10MB'));
+                    return;
+                }
+                const reader = new FileReader();
+                reader.onload = ev => {
+                    const img = new Image();
+                    img.onload = () => {
+                        let { width, height } = img;
+                        // 如果本來就很小，不壓縮
+                        if (width <= maxSize && height <= maxSize) {
+                            resolve(ev.target.result);
+                            return;
+                        }
+                        // 等比例縮小
+                        if (width > height) {
+                            height = Math.round(height * maxSize / width);
+                            width  = maxSize;
+                        } else {
+                            width  = Math.round(width * maxSize / height);
+                            height = maxSize;
+                        }
+                        const canvas = document.createElement('canvas');
+                        canvas.width  = width;
+                        canvas.height = height;
+                        canvas.getContext('2d').drawImage(img, 0, 0, width, height);
+                        // 輸出 jpeg 壓縮
+                        resolve(canvas.toDataURL('image/jpeg', quality));
+                    };
+                    img.src = ev.target.result;
+                };
+                reader.readAsDataURL(file);
+            });
+        }
+
+        function handleModalImgUpload(e) {
+            const files = Array.from(e.target.files);
+            Promise.allSettled(files.map(f => compressImage(f))).then(results => {
+                results.forEach(r => {
+                    if (r.status === 'fulfilled') pendingActivityImages.push(r.value);
+                });
+                renderModalImgPreview();
+            });
+            e.target.value = '';
+        }
+
+        function triggerActivityImgUpload(activityId) {
+            uploadTargetId = activityId;
+            document.getElementById('activityImgFile').click();
+        }
+
+        function handleActivityImgUpload(e) {
+            const files = Array.from(e.target.files);
+            const activity = appData.activities.find(a => a.id === uploadTargetId);
+            if (!activity) return;
+            if (!activity.images) activity.images = [];
+            Promise.allSettled(files.map(f => compressImage(f))).then(results => {
+                let added = 0;
+                results.forEach(r => {
+                    if (r.status === 'fulfilled') { activity.images.push(r.value); added++; }
+                });
+                if (added > 0) {
+                    saveData();
+                    renderItinerary();
+                    showSuccessMessage(`已新增 ${added} 張圖片！`);
+                }
+            });
+            e.target.value = '';
+        }
+
+        function openLightbox(activityId, index) {
+            lightboxActivityId = activityId;
+            lightboxIndex = index;
+            renderLightbox();
+            document.getElementById('lightboxOverlay').classList.add('active');
+        }
+
+        function renderLightbox() {
+            const activity = appData.activities.find(a => a.id === lightboxActivityId);
+            if (!activity || !activity.images) return;
+            const imgs = activity.images;
+            document.getElementById('lightboxImg').src = imgs[lightboxIndex];
+            document.getElementById('lightboxCounter').textContent = `${lightboxIndex + 1} / ${imgs.length}`;
+            document.getElementById('lightboxDeleteBtn').style.display =
+                document.body.classList.contains('view-mode') ? 'none' : '';
+            const btns = document.querySelector('.lightbox-toolbar').children;
+            btns[0].style.opacity = lightboxIndex > 0 ? '1' : '0.3';
+            btns[2].style.opacity = lightboxIndex < imgs.length - 1 ? '1' : '0.3';
+        }
+
+        function lightboxNav(dir) {
+            const activity = appData.activities.find(a => a.id === lightboxActivityId);
+            if (!activity || !activity.images) return;
+            const newIdx = lightboxIndex + dir;
+            if (newIdx < 0 || newIdx >= activity.images.length) return;
+            lightboxIndex = newIdx;
+            renderLightbox();
+        }
+
+        function lightboxDelete() {
+            if (!confirm('確定要刪除這張圖片？')) return;
+            const activity = appData.activities.find(a => a.id === lightboxActivityId);
+            if (!activity || !activity.images) return;
+            activity.images.splice(lightboxIndex, 1);
+            saveData();
+            if (activity.images.length === 0) { closeLightbox(); renderItinerary(); return; }
+            lightboxIndex = Math.min(lightboxIndex, activity.images.length - 1);
+            renderLightbox();
+            renderItinerary();
+        }
+
+        function closeLightbox() {
+            document.getElementById('lightboxOverlay').classList.remove('active');
+        }
+
+        function closeLightboxOnBg(e) {
+            if (e.target === document.getElementById('lightboxOverlay')) closeLightbox();
+        }
+
+        document.addEventListener('keydown', e => {
+            if (!document.getElementById('lightboxOverlay').classList.contains('active')) return;
+            if (e.key === 'ArrowLeft')  lightboxNav(-1);
+            if (e.key === 'ArrowRight') lightboxNav(1);
+            if (e.key === 'Escape')     closeLightbox();
+        });
+
+        let dragSrcId   = null;
+        let dragSrcDay  = null;
+        let longPressTimer = null;
+        let touchDragActive = false;
+
+        // 綁定拖曳事件（每次 renderItinerary 後呼叫）
+        function bindDragEvents() {
+            document.querySelectorAll('.activity[data-id]').forEach(el => {
+                const handle = el.querySelector('.drag-handle');
+                if (!handle) return;
+
+                // ── Desktop drag ──
+                el.setAttribute('draggable', 'false'); // 預設不可拖，長按後啟用
+                handle.addEventListener('mousedown', () => {
+                    el.setAttribute('draggable', 'true');
+                });
+                el.addEventListener('dragstart', e => {
+                    dragSrcId  = el.dataset.id;
+                    dragSrcDay = parseInt(el.dataset.day);
+                    el.classList.add('dragging');
+                    e.dataTransfer.effectAllowed = 'move';
+                });
+                el.addEventListener('dragend', () => {
+                    el.classList.remove('dragging');
+                    el.setAttribute('draggable', 'false');
+                    document.querySelectorAll('.activity.drag-over').forEach(x => x.classList.remove('drag-over'));
+                });
+                el.addEventListener('dragover', e => {
+                    e.preventDefault();
+                    if (el.dataset.id !== dragSrcId) el.classList.add('drag-over');
+                });
+                el.addEventListener('dragleave', () => el.classList.remove('drag-over'));
+                el.addEventListener('drop', e => {
+                    e.preventDefault();
+                    el.classList.remove('drag-over');
+                    const targetId  = el.dataset.id;
+                    const targetDay = parseInt(el.dataset.day);
+                    if (dragSrcId === targetId) return;
+                    if (dragSrcDay !== targetDay) {
+                        showSuccessMessage('只能在同一天內排序');
+                        return;
+                    }
+                    reorderActivity(dragSrcId, targetId, dragSrcDay);
+                });
+
+                // ── Touch long press drag ──
+                let touchMoveHandler, touchEndHandler;
+                handle.addEventListener('touchstart', e => {
+                    longPressTimer = setTimeout(() => {
+                        touchDragActive = true;
+                        dragSrcId  = el.dataset.id;
+                        dragSrcDay = parseInt(el.dataset.day);
+                        el.classList.add('dragging');
+                        navigator.vibrate && navigator.vibrate(40);
+
+                        // 綁到 document 上，這樣手指離開 handle 也能追蹤
+                        touchMoveHandler = (ev) => {
+                            if (!touchDragActive) return;
+                            ev.preventDefault();
+                            const touch  = ev.touches[0];
+                            const target = document.elementFromPoint(touch.clientX, touch.clientY);
+                            const card   = target && target.closest('.activity[data-id]');
+                            document.querySelectorAll('.activity.drag-over').forEach(x => x.classList.remove('drag-over'));
+                            if (card && card.dataset.id !== dragSrcId) card.classList.add('drag-over');
+                        };
+                        touchEndHandler = (ev) => {
+                            if (!touchDragActive) return;
+                            touchDragActive = false;
+                            el.classList.remove('dragging');
+                            const touch  = ev.changedTouches[0];
+                            const target = document.elementFromPoint(touch.clientX, touch.clientY);
+                            const card   = target && target.closest('.activity[data-id]');
+                            document.querySelectorAll('.activity.drag-over').forEach(x => x.classList.remove('drag-over'));
+                            document.removeEventListener('touchmove', touchMoveHandler);
+                            document.removeEventListener('touchend', touchEndHandler);
+                            document.removeEventListener('touchcancel', touchEndHandler);
+                            if (!card) return;
+                            const targetId  = card.dataset.id;
+                            const targetDay = parseInt(card.dataset.day);
+                            if (dragSrcId === targetId) return;
+                            if (dragSrcDay !== targetDay) { showSuccessMessage('只能在同一天內排序'); return; }
+                            reorderActivity(dragSrcId, targetId, dragSrcDay);
+                        };
+                        document.addEventListener('touchmove', touchMoveHandler, { passive: false });
+                        document.addEventListener('touchend',  touchEndHandler,  { passive: true });
+                        document.addEventListener('touchcancel', touchEndHandler, { passive: true });
+                    }, 400);
+                }, { passive: true });
+
+                // 取消長按計時（手指太快移開）
+                handle.addEventListener('touchmove', () => clearTimeout(longPressTimer), { passive: true });
+                handle.addEventListener('touchend',  () => clearTimeout(longPressTimer), { passive: true });
+            });
+        }
+
+        function moveActivity(id, day, dir) {
+            const dayActs = appData.activities.filter(a => a.day === day);
+            const others  = appData.activities.filter(a => a.day !== day);
+            const idx     = dayActs.findIndex(a => a.id === id);
+            const newIdx  = idx + dir;
+            if (newIdx < 0 || newIdx >= dayActs.length) return;
+            // 交換
+            [dayActs[idx], dayActs[newIdx]] = [dayActs[newIdx], dayActs[idx]];
+            appData.activities = [...others, ...dayActs].sort((a, b) => a.day - b.day || 0);
+            saveData();
+            renderItinerary();
+        }
+
+        function reorderActivity(srcId, targetId, day) {
+            const dayActs = appData.activities.filter(a => a.day === day);
+            const others  = appData.activities.filter(a => a.day !== day);
+            const srcIdx  = dayActs.findIndex(a => a.id === srcId);
+            const tgtIdx  = dayActs.findIndex(a => a.id === targetId);
+            if (srcIdx === -1 || tgtIdx === -1) return;
+            const [moved] = dayActs.splice(srcIdx, 1);
+            dayActs.splice(tgtIdx, 0, moved);
+            appData.activities = [...others, ...dayActs].sort((a, b) => a.day - b.day || 0);
+            saveData();
+            renderItinerary();
+            showSuccessMessage('順序已更新！');
+        }
+
+        // ── 清單拖拉排序 ──
+        function reorderChecklist(srcId, targetId, category) {
+            const catItems = appData.checklists.filter(c => c.category === category);
+            const others   = appData.checklists.filter(c => c.category !== category);
+            const srcIdx   = catItems.findIndex(c => c.id === srcId);
+            const tgtIdx   = catItems.findIndex(c => c.id === targetId);
+            if (srcIdx === -1 || tgtIdx === -1) return;
+            const [moved] = catItems.splice(srcIdx, 1);
+            catItems.splice(tgtIdx, 0, moved);
+            // 把該分類的順序放回原本 checklists 陣列：保留其他分類項目順序
+            // 簡化：重新依分類順序拼回（同分類連續排列）
+            const cats = {};
+            appData.checklists.forEach(c => { cats[c.category] = cats[c.category] || []; cats[c.category].push(c); });
+            // 替換掉這個分類的排序
+            cats[category] = catItems;
+            appData.checklists = Object.values(cats).flat();
+            saveData();
+            renderChecklist();
+            showSuccessMessage('順序已更新！');
+        }
+
+        let checklistDragSrcId = null;
+        let checklistDragSrcCat = null;
+        let checklistTouchDragActive = false;
+        let checklistLongPressTimer = null;
+
+        function bindChecklistDragEvents() {
+            document.querySelectorAll('.checklist-item[data-id]').forEach(el => {
+                const handle = el.querySelector('.checklist-drag-handle');
+                if (!handle) return;
+
+                // ── Desktop drag ──
+                el.setAttribute('draggable', 'false');
+                handle.addEventListener('mousedown', e => {
+                    e.stopPropagation();
+                    el.setAttribute('draggable', 'true');
+                });
+                handle.addEventListener('click', e => {
+                    // 防止點到拖把時觸發 checkbox 切換
+                    e.preventDefault();
+                    e.stopPropagation();
+                });
+                el.addEventListener('dragstart', e => {
+                    checklistDragSrcId  = el.dataset.id;
+                    checklistDragSrcCat = el.dataset.category;
+                    el.classList.add('dragging');
+                    e.dataTransfer.effectAllowed = 'move';
+                });
+                el.addEventListener('dragend', () => {
+                    el.classList.remove('dragging');
+                    el.setAttribute('draggable', 'false');
+                    document.querySelectorAll('.checklist-item.drag-over').forEach(x => x.classList.remove('drag-over'));
+                });
+                el.addEventListener('dragover', e => {
+                    e.preventDefault();
+                    if (el.dataset.id !== checklistDragSrcId) el.classList.add('drag-over');
+                });
+                el.addEventListener('dragleave', () => el.classList.remove('drag-over'));
+                el.addEventListener('drop', e => {
+                    e.preventDefault();
+                    el.classList.remove('drag-over');
+                    const targetId  = el.dataset.id;
+                    const targetCat = el.dataset.category;
+                    if (checklistDragSrcId === targetId) return;
+                    if (checklistDragSrcCat !== targetCat) {
+                        showSuccessMessage('只能在同分類內排序');
+                        return;
+                    }
+                    reorderChecklist(checklistDragSrcId, targetId, checklistDragSrcCat);
+                });
+
+                // ── Touch long press drag ──
+                let touchMoveHandler, touchEndHandler;
+                handle.addEventListener('touchstart', () => {
+                    checklistLongPressTimer = setTimeout(() => {
+                        checklistTouchDragActive = true;
+                        checklistDragSrcId  = el.dataset.id;
+                        checklistDragSrcCat = el.dataset.category;
+                        el.classList.add('dragging');
+                        navigator.vibrate && navigator.vibrate(40);
+
+                        touchMoveHandler = (ev) => {
+                            if (!checklistTouchDragActive) return;
+                            ev.preventDefault();
+                            const touch  = ev.touches[0];
+                            const target = document.elementFromPoint(touch.clientX, touch.clientY);
+                            const card   = target && target.closest('.checklist-item[data-id]');
+                            document.querySelectorAll('.checklist-item.drag-over').forEach(x => x.classList.remove('drag-over'));
+                            if (card && card.dataset.id !== checklistDragSrcId) card.classList.add('drag-over');
+                        };
+                        touchEndHandler = (ev) => {
+                            if (!checklistTouchDragActive) return;
+                            checklistTouchDragActive = false;
+                            el.classList.remove('dragging');
+                            const touch  = ev.changedTouches[0];
+                            const target = document.elementFromPoint(touch.clientX, touch.clientY);
+                            const card   = target && target.closest('.checklist-item[data-id]');
+                            document.querySelectorAll('.checklist-item.drag-over').forEach(x => x.classList.remove('drag-over'));
+                            document.removeEventListener('touchmove', touchMoveHandler);
+                            document.removeEventListener('touchend',  touchEndHandler);
+                            document.removeEventListener('touchcancel', touchEndHandler);
+                            if (!card) return;
+                            const targetId  = card.dataset.id;
+                            const targetCat = card.dataset.category;
+                            if (checklistDragSrcId === targetId) return;
+                            if (checklistDragSrcCat !== targetCat) { showSuccessMessage('只能在同分類內排序'); return; }
+                            reorderChecklist(checklistDragSrcId, targetId, checklistDragSrcCat);
+                        };
+                        document.addEventListener('touchmove', touchMoveHandler, { passive: false });
+                        document.addEventListener('touchend',  touchEndHandler,  { passive: true });
+                        document.addEventListener('touchcancel', touchEndHandler, { passive: true });
+                    }, 400);
+                }, { passive: true });
+
+                handle.addEventListener('touchmove', () => clearTimeout(checklistLongPressTimer), { passive: true });
+                handle.addEventListener('touchend',  () => clearTimeout(checklistLongPressTimer), { passive: true });
+            });
+        }
+
+        // 日期標題編輯函數
+        function editDayTitle(dayId) {
+            editingDayId = dayId;
+            const title = appData.dayTitles[dayId] || { emoji: '📅', title: `Day ${dayId}` };
+            document.getElementById('dayTitleModalTitle').textContent = `編輯 Day ${dayId} 標題`;
+            document.getElementById('dayTitleEmoji').value = title.emoji;
+            document.getElementById('dayTitleText').value = title.title;
+            openModal('dayTitleModal');
+        }
+
+        function saveDayTitle(e) {
+            e.preventDefault();
+            appData.dayTitles[editingDayId] = {
+                emoji: document.getElementById('dayTitleEmoji').value,
+                title: document.getElementById('dayTitleText').value
+            };
+            saveData();
+            renderItinerary();
+            closeModal('dayTitleModal');
+            showSuccessMessage('標題已保存！');
+        }
+
+        // 清單編輯函數
+        function toggleChecklistItem(id) {
+            if (document.body.classList.contains('view-mode')) return; // 瀏覽模式不可打勾
+            const item = appData.checklists.find(i => i.id === id);
+            if (item) {
+                item.completed = !item.completed;
+                saveData();
+                renderChecklist();
+            }
+        }
+
+        // 資訊編輯函數
+        // ── 航班照片暫存 ──
+        let pendingFlightOutImage    = '';
+        let pendingFlightReturnImage = '';
+
+        function triggerFlightImgUpload(direction) {
+            document.getElementById(`flight${direction}ImgInput`).click();
+        }
+
+        function handleFlightImgUpload(event, direction) {
+            const file = event.target.files[0];
+            if (!file) return;
+            compressImage(file).then(dataUrl => {
+                if (direction === 'Out') {
+                    pendingFlightOutImage = dataUrl;
+                } else {
+                    pendingFlightReturnImage = dataUrl;
+                }
+                renderFlightImgPreview(direction, dataUrl);
+            });
+        }
+
+        function renderFlightImgPreview(direction, src) {
+            const el = document.getElementById(`flight${direction}ImgPreview`);
+            if (!el) return;
+            el.innerHTML = src
+                ? `<div style="position:relative;display:inline-block;width:100%;">
+                    <img src="${src}" style="width:100%;border-radius:8px;max-height:180px;object-fit:cover;">
+                    <button type="button" onclick="removeFlightImg('${direction}')"
+                        style="position:absolute;top:6px;right:6px;background:rgba(0,0,0,0.5);color:white;border:none;border-radius:50%;width:24px;height:24px;cursor:pointer;font-size:14px;">✕</button>
+                  </div>`
+                : '';
+        }
+
+        function removeFlightImg(direction) {
+            if (direction === 'Out') pendingFlightOutImage = '';
+            else pendingFlightReturnImage = '';
+            renderFlightImgPreview(direction, '');
+        }
+
+        function openFlightModal() {
+            const o = appData.info.flightOut  || {};
+            const r = appData.info.flightReturn || {};
+            const set = (id, val) => {
+                const el = document.getElementById(id);
+                if (el) {
+                    el.value = val || '';
+                    el.dataset.manualEdit = '';
+                }
+            };
+            set('infoFlightOutName',    o.flightName);
+            set('infoFlightOutDate',    o.date);
+            set('infoFlightReturnName', r.flightName);
+            set('infoFlightReturnDate', r.date);
+
+            // 照片預覽
+            pendingFlightOutImage    = o.image || '';
+            pendingFlightReturnImage = r.image || '';
+            renderFlightImgPreview('Out',    pendingFlightOutImage);
+            renderFlightImgPreview('Return', pendingFlightReturnImage);
+
+            openModal('flightModal');
+        }
+
+        function saveFlightData(e) {
+            e.preventDefault();
+            appData.info.flightOut = {
+                flightName: document.getElementById('infoFlightOutName').value,
+                date:       document.getElementById('infoFlightOutDate').value,
+                image:      pendingFlightOutImage,
+            };
+            appData.info.flightReturn = {
+                flightName: document.getElementById('infoFlightReturnName').value,
+                date:       document.getElementById('infoFlightReturnDate').value,
+                image:      pendingFlightReturnImage,
+            };
+            saveData(); renderInfo(); closeModal('flightModal');
+            showSuccessMessage('航班資訊已保存！');
+        }
+
+        // ── 飯店 ──
+        // editingState.editingHotelId 統一管理（不再使用全域變數）
+
+        // 模態控制
+        function openModal(id) {
+            document.getElementById(id).classList.add('active');
+        }
+
+        function closeModal(id) {
+            document.getElementById(id).classList.remove('active');
+            editingState.editingId      = null;
+            editingState.editingHotelId = null;
+            editingState.editingPlaceId = null;
+            editingDayId = null;
+        }
+
+        // Google Maps 導航
+        function openMap(location) {
+            const query = encodeURIComponent(location);
+            const mapsUrl = `https://www.google.com/maps/search/${query}`;
+            window.open(mapsUrl, '_blank');
+        }
+
+        // 數據導出
+        function exportData() {
+            const dataStr = JSON.stringify(appData, null, 2);
+            const blob = new Blob([dataStr], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            const title = (appData.trip && appData.trip.title) || 'itinerary';
+            a.download = `${title}-備份.json`;
+            a.click();
+            URL.revokeObjectURL(url);
+            showSuccessMessage('已匯出！');
+        }
+
+        function importData(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                try {
+                    const imported = JSON.parse(e.target.result);
+                    // 基本驗證：必須有 activities 或 trip 欄位
+                    if (!imported.activities && !imported.trip) {
+                        alert('❌ 檔案格式不正確，請選擇正確的行程備份檔。');
+                        return;
+                    }
+                    if (!confirm(`確定要匯入「${(imported.trip && imported.trip.title) || '此行程'}」？\n目前的資料將會被覆蓋。`)) return;
+                    appData = imported;
+                    saveData();
+                    init();
+                    showSuccessMessage('✅ 匯入成功！');
+                } catch (err) {
+                    alert('❌ 檔案讀取失敗，請確認是正確的 JSON 備份檔。');
+                }
+                // 重設 input，讓同一個檔案可以再次匯入
+                event.target.value = '';
+            };
+            reader.readAsText(file);
+        }
+
+        // 數據重設
+        function resetData() {
+            if (confirm('確定要重設所有數據嗎？此操作無法撤銷。')) {
+                appData = cloneDefault();
+                saveData();
+                init();
+                showSuccessMessage('已重設為預設值！');
+            }
+        }
+
+        // 提示信息
+        function showSuccessMessage(message) {
+            // 簡單的提示（可以擴展為更好看的提示）
+            const div = document.createElement('div');
+            div.className = 'success-message';
+            div.textContent = message;
+            div.style.position = 'fixed';
+            div.style.bottom = '20px';
+            div.style.right = '20px';
+            div.style.zIndex = '2000';
+            document.body.appendChild(div);
+            setTimeout(() => div.remove(), 2000);
+        }
+
+        // 點擊模態外部關閉
+        // 模式切換（瀏覽 / 編輯）
+        function setMode(mode) {
+            if (mode === 'view') {
+                document.body.classList.add('view-mode');
+                document.getElementById('modeViewBtn').classList.add('active');
+                document.getElementById('modeEditBtn').classList.remove('active');
+            } else {
+                document.body.classList.remove('view-mode');
+                document.getElementById('modeViewBtn').classList.remove('active');
+                document.getElementById('modeEditBtn').classList.add('active');
+            }
+            localStorage.setItem('okinawaMode', mode);
+        }
+
+        // ── 地圖頁 ──
+
+        function openAddActivityForDay(day) {
+            openItem('activity');
+            document.getElementById('activityDay').value = day;
+        }
+
+        function filterItinerary(day) {
+            currentItineraryDay = day;
+            renderItinerary();
+            // 篩選後捲回頂部
+            document.getElementById('itinerary-list').scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }
+
+        let currentMapDay = 'all';
+        // editingState.editingPlaceId 統一管理
+
+        // ── 額外景點 CRUD ──
+        function updatePlaceDayOptions() {
+            const sel = document.getElementById('placeDay');
+            sel.innerHTML = '<option value="0">📌 未排程（想去清單）</option>';
+            const numDays = getTripDays();
+            for (let d = 1; d <= numDays; d++) {
+                const dt = appData.dayTitles[d];
+                const opt = document.createElement('option');
+                opt.value = d;
+                opt.textContent = `Day ${d} ${dt ? dt.emoji : ''} ${dt ? dt.title : ''}`;
+                sel.appendChild(opt);
+            }
+        }
+
+        function renderMap(filterDay) {
+            try { _renderMap(filterDay); }
+            catch(e) { console.error('renderMap error:', e); showRenderError('地圖'); }
+        }
+        function _renderMap(filterDay) {
+            currentMapDay = filterDay;
+            const numDays = getTripDays();
+            const dayDates = [''];
+            for (let d = 1; d <= numDays; d++) dayDates.push(getDayDateStr(d));
+
+            // ── Filter 下拉選單 ──
+            let opts = `<option value="all">🗺️ 全部地點</option>`;
+            opts += `<option value="unscheduled" ${filterDay === 'unscheduled' ? 'selected' : ''}>📌 未排程景點</option>`;
+            for (let d = 1; d <= numDays; d++) {
+                const dt = appData.dayTitles[d];
+                opts += `<option value="${d}" ${filterDay === d ? 'selected' : ''}>Day ${d} ${dt ? dt.emoji : ''} ${dt ? dt.title : ''} · ${dayDates[d]}</option>`;
+            }
+            document.getElementById('map-filter').innerHTML =
+                `<select class="day-select" onchange="renderMap(this.value === 'all' || this.value === 'unscheduled' ? this.value : parseInt(this.value))">${opts}</select>`;
+            document.getElementById('map-filter').querySelector('select').value =
+                filterDay === 'all' || filterDay === 'unscheduled' ? filterDay : String(filterDay);
+
+            // ── 收集每天的地點：行程活動 + 額外景點 ──
+            const days = {};        // 排程地點
+            const unscheduled = []; // 未排程景點
+
+            appData.activities.forEach(a => {
+                if (!a.location) return;
+                if (!days[a.day]) days[a.day] = [];
+                days[a.day].push({ ...a, _type: 'activity' });
+            });
+
+            (appData.extraPlaces || []).forEach(p => {
+                if (!p.location) return;
+                if (p.day === 0 || !p.day) {
+                    unscheduled.push({ ...p, title: p.name, _type: 'extra' });
+                } else {
+                    if (!days[p.day]) days[p.day] = [];
+                    days[p.day].push({ ...p, title: p.name, _type: 'extra' });
+                }
+            });
+
+            let listHtml = '';
+
+            // ── 路線按鈕 ──
+            if (filterDay !== 'all' && filterDay !== 'unscheduled') {
+                const dayActivities = (days[filterDay] || []).filter(a => a.location);
+                if (dayActivities.length) {
+                    const query = dayActivities.map(a => encodeURIComponent(a.location)).join('/');
+                    const mapsUrl = `https://www.google.com/maps/dir/${query}`;
+                    listHtml += `
+                        <button class="map-open-all" onclick="window.open('${mapsUrl}','_blank')">
+                            🗺️ 在 Google Maps 開啟 Day ${filterDay} 路線
+                        </button>
+                        <div style="margin-bottom:16px;"></div>
+                    `;
+                }
+            }
+
+            // ── 渲染未排程景點 ──
+            if (filterDay === 'all' || filterDay === 'unscheduled') {
+                if (unscheduled.length > 0) {
+                    listHtml += `<div class="map-day-section">
+                        <div class="map-day-label">📌 未排程景點</div>`;
+                    unscheduled.forEach(p => listHtml += placeCardHtml(p));
+                    listHtml += `</div>`;
+                } else if (filterDay === 'unscheduled') {
+                    listHtml += `<p style="color:#aaa;text-align:center;padding:40px 0;">尚無未排程景點<br>點上方「新增景點」加入想去的地方</p>`;
+                }
+            }
+
+            // ── 渲染按天的地點 ──
+            if (filterDay !== 'unscheduled') {
+                const targetDays = filterDay === 'all'
+                    ? Array.from({length: numDays}, (_, i) => i + 1)
+                    : [filterDay];
+
+                targetDays.forEach(day => {
+                    const acts = days[day] || [];
+                    if (!acts.length) return;
+
+                    const dt = appData.dayTitles[day];
+                    if (filterDay === 'all') {
+                        listHtml += `
+                            <div class="map-day-section">
+                                <div class="map-day-label">Day ${day} ${dt ? dt.emoji : ''} ${dt ? dt.title : ''} <span style="font-weight:400;color:#aaa;font-size:11px;">${dayDates[day]}</span></div>
+                        `;
+                    } else {
+                        listHtml += `<div class="map-day-section">`;
+                    }
+
+                    acts.forEach(p => listHtml += placeCardHtml(p));
+                    listHtml += `</div>`;
+                });
+            }
+
+            document.getElementById('map-list').innerHTML = listHtml || '<p style="color:#aaa;text-align:center;padding:40px 0;">沒有地點資料<br>點上方「新增景點」加入</p>';
+        }
+
+        function placeCardHtml(p) {
+            const q   = encodeURIComponent(p.location);
+            const url = `https://www.google.com/maps/search/${q}`;
+            const isExtra = p._type === 'extra';
+            const editBtns = isExtra
+                ? `<div class="map-edit-btns" style="display:flex;flex-direction:column;gap:3px;flex-shrink:0;margin-left:6px;">
+                    <button class="btn-sm btn-edit" style="padding:2px 6px;font-size:10px;" onclick="event.preventDefault();event.stopPropagation();openItem('place', '${p.id}')\">✏️</button>
+                    <button class="btn-sm btn-delete" style="padding:2px 6px;font-size:10px;" onclick="event.preventDefault();event.stopPropagation();deleteItem('place', '${p.id}')\">🗑️</button>
+                  </div>`
+                : '';
+            return `
+                <div style="display:flex;align-items:center;">
+                    <a class="map-place-card" href="${url}" target="_blank" rel="noopener" style="flex:1;${isExtra ? 'background:#FFF9F0;border-color:#FFE5B4;' : ''}">
+                        <div class="map-place-icon">${escapeHtml(p.icon || '📍')}</div>
+                        <div class="map-place-body">
+                            <div class="map-place-title">${escapeHtml(p.title)}${isExtra ? ' <span style="font-size:9px;color:#FF9F43;background:#FFE5B4;padding:1px 5px;border-radius:6px;margin-left:3px;">想去</span>' : ''}</div>
+                            <div class="map-place-loc">📍 ${escapeHtml(p.location)}</div>
+                            ${p.time ? `<div class="map-place-time">🕐 ${escapeHtml(p.time)}</div>` : ''}
+                            ${p.notes ? `<div class="map-place-time">📝 ${escapeHtml(p.notes)}</div>` : ''}
+                        </div>
+                    </a>
+                    ${editBtns}
+                </div>
+            `;
+        }
+
+        // ── 初始化 ──
+        // 有房間碼時正常 init，沒有則等 Firebase script 的歡迎畫面
+        const _hasRoom = !!localStorage.getItem('okinawaRoom');
+        if (_hasRoom) {
+            init();
+        }
+        // 不管有沒有房間碼都設定模式
+        const savedMode = localStorage.getItem('okinawaMode') || 'view';
+        setMode(savedMode);
+
+        // ── 天氣 Widget（Open-Meteo，那霸 lat/lng）──
+        async function fetchWeather() {
+            const w = document.getElementById('weather-in-info');
+            if (!w) return;
+            w.innerHTML = '<div style="color:rgba(0,168,168,0.8);font-size:12px;">⛅ 載入那霸天氣中…</div>';
+
+            const WMO = {
+                0:'☀️',1:'🌤️',2:'⛅',3:'☁️',
+                45:'🌫️',48:'🌫️',
+                51:'🌦️',53:'🌦️',55:'🌧️',
+                61:'🌧️',63:'🌧️',65:'🌧️',
+                71:'❄️',73:'❄️',75:'❄️',
+                80:'🌦️',81:'🌧️',82:'⛈️',
+                95:'⛈️',96:'⛈️',99:'⛈️'
+            };
+            const WMO_TEXT = {
+                0:'晴天',1:'大致晴',2:'部分多雲',3:'陰天',
+                45:'霧',48:'霧',
+                51:'毛毛雨',53:'毛毛雨',55:'毛毛雨',
+                61:'小雨',63:'中雨',65:'大雨',
+                71:'小雪',73:'中雪',75:'大雪',
+                80:'陣雨',81:'陣雨',82:'強陣雨',
+                95:'雷陣雨',96:'雷陣雨',99:'雷陣雨'
+            };
+
+            function renderWeather(temp, feel, humid, wind, code) {
+                const icon = WMO[code]      || '🌡️';
+                const desc = WMO_TEXT[code] || '–';
+                w.innerHTML = `
+                    <div style="font-size:32px;line-height:1;">${icon}</div>
+                    <div>
+                        <div style="font-size:26px;font-weight:800;letter-spacing:-0.5px;">${temp}°C</div>
+                        <div style="font-size:11px;opacity:0.85;margin-top:2px;">那霸・${desc}</div>
+                    </div>
+                    <div style="border-left:1px solid rgba(255,255,255,0.3);padding-left:14px;display:flex;flex-direction:column;gap:3px;font-size:11px;opacity:0.9;">
+                        <span>體感 ${feel}°C・濕度 ${humid}%</span>
+                        <span>風速 ${wind} km/h</span>
+                    </div>`;
+            }
+
+            // ── 方法 1：Open-Meteo fetch（https 環境可用）──
+            try {
+                const controller = new AbortController();
+                const timer = setTimeout(() => controller.abort(), 5000);
+                const url = 'https://api.open-meteo.com/v1/forecast' +
+                    '?latitude=26.2124&longitude=127.6809' +
+                    '&current=temperature_2m,apparent_temperature,relative_humidity_2m,wind_speed_10m,weather_code' +
+                    '&wind_speed_unit=kmh&timezone=Asia%2FTokyo';
+                const res  = await fetch(url, { signal: controller.signal });
+                clearTimeout(timer);
+                const data = await res.json();
+                const c    = data.current;
+                renderWeather(
+                    Math.round(c.temperature_2m),
+                    Math.round(c.apparent_temperature),
+                    c.relative_humidity_2m,
+                    Math.round(c.wind_speed_10m),
+                    c.weather_code
+                );
+                return; // 成功，不需要 fallback
+            } catch (e) { /* 進入 fallback */ }
+
+            // ── 方法 2：wttr.in JSONP（file:// 環境也可用）──
+            try {
+                await new Promise((resolve, reject) => {
+                    const cbName = '_wttr_' + Date.now();
+                    const timeout = setTimeout(() => {
+                        delete window[cbName];
+                        reject(new Error('timeout'));
+                    }, 8000);
+
+                    window[cbName] = (data) => {
+                        clearTimeout(timeout);
+                        delete window[cbName];
+                        try {
+                            const cur   = data.current_condition[0];
+                            const temp  = parseInt(cur.temp_C);
+                            const feel  = parseInt(cur.FeelsLikeC);
+                            const humid = parseInt(cur.humidity);
+                            const wind  = parseInt(cur.windspeedKmph);
+                            // wttr.in weatherCode 對照 WMO（近似）
+                            const wMap  = {
+                                113:0, 116:1, 119:2, 122:3,
+                                143:45, 248:45, 260:48,
+                                263:51, 266:53, 281:55, 293:61, 296:61, 299:63,
+                                302:63, 305:65, 308:65,
+                                311:55, 314:55, 317:71, 320:73, 323:71, 326:73,
+                                329:75, 332:75, 335:75, 338:75,
+                                353:80, 356:81, 359:82,
+                                362:80, 365:81, 374:80, 377:81,
+                                386:95, 389:99, 392:95, 395:99
+                            };
+                            const wCode = wMap[parseInt(cur.weatherCode)] ?? 3;
+                            renderWeather(temp, feel, humid, wind, wCode);
+                            resolve();
+                        } catch(err) { reject(err); }
+                    };
+
+                    const script = document.createElement('script');
+                    script.src = `https://wttr.in/Naha?format=j1&callback=${cbName}`;
+                    script.onerror = () => { clearTimeout(timeout); reject(new Error('script error')); };
+                    document.head.appendChild(script);
+                });
+            } catch(e) {
+                if (w) w.style.display = 'none';
+            }
+        }
+    </script>
+
+    <!-- 房間碼 Modal -->
+    <div id="roomModalOverlay" class="room-modal-overlay" style="display:none;">
+        <div class="room-modal">
+            <h2>🔗 共同編輯</h2>
+            <p>建立新房間或輸入他人的房間碼<br>加入同一份行程即時同步</p>
+
+            <div id="roomNewSection">
+                <div class="room-code-display" id="roomNewCode">––––––</div>
+                <button class="btn-save" style="width:100%;margin-bottom:8px;" onclick="joinRoom(document.getElementById('roomNewCode').textContent)">
+                    建立並加入此房間
+                </button>
+            </div>
+
+            <div class="room-divider">或加入已有房間</div>
+
+            <input class="room-input" id="roomJoinInput" maxlength="6" placeholder="輸入房間碼"
+                oninput="this.value=this.value.toUpperCase().replace(/[^A-Z0-9]/g,'')">
+            <button class="btn-save" style="width:100%;margin-bottom:12px;" onclick="joinRoomFromInput()">加入房間</button>
+            <button class="btn-cancel" style="width:100%;" onclick="closeRoomModal()">取消</button>
+        </div>
+    </div>
+
+    <script>
+    // ══════════════════════════════════════════
+    // Firebase 初始化
+    // ══════════════════════════════════════════
+    const firebaseConfig = {
+        apiKey:            "AIzaSyAjjy9ZK38JD-C-2kYu89o-7UCQ4u8nF3E",
+        authDomain:        "okinawa-travel-966a1.firebaseapp.com",
+        projectId:         "okinawa-travel-966a1",
+        storageBucket:     "okinawa-travel-966a1.firebasestorage.app",
+        messagingSenderId: "155129370619",
+        appId:             "1:155129370619:web:e12e87807651dd9ddf5d5e",
+        databaseURL:       "https://okinawa-travel-966a1-default-rtdb.asia-southeast1.firebasedatabase.app"
+    };
+    // ── 狀態（必須在 Firebase 初始化前宣告）──
+    let currentRoom    = localStorage.getItem('okinawaRoom') || null;
+    let isSyncing      = false;
+    let fbListener     = null;
+    let ignoreNextSnapshot = false;
+
+    let db = null;
+    try {
+        if (!firebase.apps.length) {
+            firebase.initializeApp(firebaseConfig);
+        }
+        db = firebase.database();
+
+        // Firebase 連線狀態監聽：斷線立刻重連（解決 Safari WebSocket 1006 問題）
+        let _connectedFirstCall = true;
+        db.ref('.info/connected').on('value', snap => {
+            const connected = snap && snap.val() === true;
+            if (_connectedFirstCall) {
+                _connectedFirstCall = false;
+                return; // 忽略第一次（初始化時的狀態）
+            }
+            if (!connected && currentRoom) {
+                // 斷線了，立刻嘗試重連
+                setSyncStatus('syncing', '重新連線…');
+                setTimeout(() => joinRoom(currentRoom), 1000); // 延遲 1 秒避免瞬間重試
+            }
+        }, err => {
+            console.error('Firebase connected listener error:', err);
+        });
+    } catch(e) {
+        console.error('Firebase init failed:', e);
+        alert('Firebase 初始化失敗，請重新整理頁面。');
+    }
+
+    // ── UI helpers ──
+    function setSyncStatus(state, label) {
+        const dot  = document.getElementById('syncDot');
+        const lbl  = document.getElementById('syncLabel');
+        const retry = document.getElementById('syncRetryBtn');
+        dot.className = 'sync-dot ' + state;
+        lbl.textContent = label;
+        // 逾時或失敗時顯示重試按鈕
+        if (retry) retry.style.display = (state === 'error') ? '' : 'none';
+    }
+
+    function retryConnection() {
+        if (currentRoom) {
+            joinRoom(currentRoom);
+        } else {
+            // 強制重新整理清快取，唯讀模式保留 room & view 參數
+            if (_isReadonly) {
+                window.location.href = window.location.href.split('?')[0]
+                    + '?room=' + _urlRoom + '&view=1&v=' + Date.now();
+            } else {
+                window.location.href = window.location.href.split('?')[0] + '?v=' + Date.now();
+            }
+        }
+    }
+
+    function setRoomCode(code) {
+        document.getElementById('syncRoomCode').textContent = code || '––––––';
+    }
+
+    // ── 產生隨機 6 碼房間碼 ──
+    function genCode() {
+        const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'; // 去掉易混淆字元
+        return Array.from({ length: 6 }, () => chars[Math.floor(Math.random() * chars.length)]).join('');
+    }
+
+    // ── 顯示房間 Modal ──
+    function showRoomModal() {
+        const code = genCode();
+        document.getElementById('roomNewCode').textContent = code;
+        document.getElementById('roomJoinInput').value = '';
+        document.getElementById('roomModalOverlay').style.display = 'flex';
+    }
+
+    function closeRoomModal() {
+        document.getElementById('roomModalOverlay').style.display = 'none';
+    }
+
+    function joinRoomFromInput() {
+        const code = document.getElementById('roomJoinInput').value.trim();
+        if (code.length !== 6) { alert('請輸入 6 碼房間碼'); return; }
+        joinRoom(code);
+    }
+
+    // ── 加入房間 ──
+    let currentRef = null; // 保存目前 Firebase ref 以便正確 off
+
+    function joinRoom(code) {
+        if (!db) {
+            setSyncStatus('error', 'Firebase 未就緒');
+            return;
+        }
+        closeRoomModal();
+        // 正確取消舊的 listener
+        if (currentRef) {
+            try { currentRef.off('value', fbListener); } catch(e) {}
+            currentRef = null;
+        }
+        fbListener = null;
+        isSyncing = false; // 重置同步狀態
+        ignoreNextSnapshot = false; // 防止 Safari BFCache 殘留
+
+        currentRoom = code;
+        if (!_isReadonly) localStorage.setItem('okinawaRoom', code);
+        setRoomCode(code);
+        setSyncStatus('syncing', '連線中…');
+
+        const ref = db.ref(`rooms/${code}/data`);
+        currentRef = ref;
+
+        let firstLoad = true;
+        let resolved  = false;
+
+        // 逾時保護（含自動重試，最多 3 次）
+        if (!joinRoom._retryCount) joinRoom._retryCount = 0;
+        const timeoutId = setTimeout(() => {
+            if (!resolved) {
+                if (joinRoom._retryCount < 3) {
+                    joinRoom._retryCount++;
+                    setSyncStatus('syncing', `重試中… (${joinRoom._retryCount}/3)`);
+                    joinRoom(code);
+                } else {
+                    joinRoom._retryCount = 0;
+                    setSyncStatus('error', '連線逾時');
+                }
+            } else {
+                joinRoom._retryCount = 0;
+            }
+        }, 20000);
+
+        fbListener = ref.on('value', snap => {
+            resolved = true;
+            clearTimeout(timeoutId);
+            joinRoom._retryCount = 0; // 連線成功，重置重試計數
+
+            if (!snap || !snap.exists()) {
+                if (firstLoad) {
+                    firstLoad = false;
+                    // 唯讀模式：不寫入 Firebase，直接顯示空行程
+                    if (_isReadonly) {
+                        setSyncStatus('connected', '已同步');
+                        return;
+                    }
+                    isSyncing = true;
+                    ref.set(appData)
+                        .then(() => { setSyncStatus('connected', '已同步'); isSyncing = false; })
+                        .catch(() => { setSyncStatus('error', '上傳失敗'); isSyncing = false; });
+                }
+                return;
+            }
+
+            firstLoad = false;
+            if (isSyncing) return;
+            if (ignoreNextSnapshot) {
+                ignoreNextSnapshot = false;
+                return;
+            }
+
+            isSyncing = true;
+            try {
+                appData = snap.val();
+                migrateData();
+                if (!document.body.classList.contains('view-mode')) saveStorage('okinawaData', appData);
+                initBanner();
+                renderTripHeader();
+                renderItinerary();
+                renderExpense();
+                renderChecklist();
+                renderInfo();
+                setSyncStatus('connected', '已同步');
+            } catch (e) {
+                console.error('render error', e);
+                setSyncStatus('error', '載入錯誤');
+            } finally {
+                isSyncing = false;
+            }
+
+        }, err => {
+            clearTimeout(timeoutId);
+            console.error('Firebase error', err);
+            setSyncStatus('error', '同步失敗');
+        });
+    }
+
+    // ── 邀請：複製連結或分享房間碼 ──
+    function shareRoom() {
+        if (!currentRoom) { showRoomModal(); return; }
+        const t = (typeof appData !== 'undefined' && appData.trip) || {};
+        const tripName = `${t.emoji || '🌏'} ${t.title || '我的旅行'}`;
+        const text = `${tripName} 共同編輯\n房間碼：${currentRoom}\n\n開啟連結後點「換房間」→ 輸入房間碼即可加入！\nhttps://te495.github.io/trip-plans/`;
+
+        // 優先複製到剪貼簿
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+            navigator.clipboard.writeText(text)
+                .then(() => showSuccessMessage(`已複製！房間碼 ${currentRoom}`))
+                .catch(() => tryNativeShare(tripName, text));
+        } else {
+            tryNativeShare(tripName, text);
+        }
+    }
+
+    // ── 分享唯讀預覽連結 ──
+    function shareReadonly() {
+        if (!currentRoom) { alert('請先建立或加入房間，再分享預覽連結。'); return; }
+        const t = (typeof appData !== 'undefined' && appData.trip) || {};
+        const tripName = `${t.emoji || '🌏'} ${t.title || '我的旅行'}`;
+        const link = `https://te495.github.io/trip-plans/?room=${currentRoom}&view=1`;
+        const text = `${tripName} 行程預覽 👀\n點連結即可查看（不能編輯）：\n${link}`;
+
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+            navigator.clipboard.writeText(text)
+                .then(() => showSuccessMessage('✅ 唯讀連結已複製！'))
+                .catch(() => tryNativeShare(tripName, text));
+        } else {
+            tryNativeShare(tripName, text);
+        }
+    }
+
+    function tryNativeShare(title, text) {
+        if (navigator.share) {
+            navigator.share({ title, text }).catch(() => {
+                // 使用者取消或失敗，靜默處理
+            });
+        } else {
+            // 最後備援：用 prompt 讓使用者手動複製
+            prompt('複製以下訊息傳給同行者：', text);
+        }
+    }
+
+    saveData = function() {
+        // 唯讀分享模式：完全禁止寫入
+        if (_isReadonly) return;
+
+        // 瀏覽模式（自己切換的 👁️）：只存本地，不推 Firebase
+        saveStorage('okinawaData', appData);
+        if (document.body.classList.contains('view-mode')) return;
+
+        if (currentRoom && !isSyncing) {
+            setSyncStatus('syncing', '同步中…');
+            ignoreNextSnapshot = true;
+            db.ref(`rooms/${currentRoom}/data`).set(appData)
+                .then(() => setSyncStatus('connected', '已同步'))
+                .catch(() => { setSyncStatus('error', '同步失敗'); ignoreNextSnapshot = false; });
+        }
+    };
+
+    // ── 歡迎畫面函數 ──
+    function showWelcome() {
+        document.title = '旅遊行程規劃';
+        const el = document.getElementById('welcomeOverlay');
+        if (el) el.style.display = 'flex';
+        setTimeout(() => {
+            const inp = document.getElementById('welcomeRoomInput');
+            if (inp) inp.focus();
+        }, 200);
+    }
+
+    function hideWelcome() {
+        const el = document.getElementById('welcomeOverlay');
+        if (el) el.style.display = 'none';
+    }
+
+    function welcomeJoin() {
+        const code = document.getElementById('welcomeRoomInput').value.trim();
+        if (code.length !== 6) { alert('請輸入 6 碼房間碼'); return; }
+        // 顯示載入中
+        const btn = document.querySelector('.welcome-btn');
+        if (btn) { btn.textContent = '連線中…'; btn.disabled = true; }
+        hideWelcome();
+        joinRoom(code);
+    }
+
+    function welcomeNew() {
+        appData = cloneDefault();
+        hideWelcome();
+        setMode('edit');
+        const code = genCode();
+        joinRoom(code);
+        showSuccessMessage(`新行程已建立！房間碼：${code}`);
+    }
+
+    // ── 自動恢復上次房間 or 顯示歡迎畫面 ──
+    // 先偵測 URL 參數（?room=XXXX&view=1）
+    const _urlParams = new URLSearchParams(window.location.search);
+    const _urlRoom   = _urlParams.get('room');
+    const _urlView   = _urlParams.get('view');
+    const _isReadonly = !!(_urlRoom && _urlView === '1');
+
+    if (_isReadonly) {
+        // 唯讀預覽模式：強制 view-mode + readonly-mode，不可切換
+        document.body.classList.add('readonly-mode');
+        setMode('view');
+        // 鎖定模式切換按鈕
+        document.getElementById('modeViewBtn').onclick = null;
+        document.getElementById('modeEditBtn').onclick = null;
+        // 鎖定標題點擊編輯
+        const titleEl = document.getElementById('tripTitle');
+        if (titleEl) { titleEl.onclick = null; titleEl.style.cursor = 'default'; titleEl.title = ''; }
+        // 加入房間並顯示
+        setRoomCode(_urlRoom);
+        joinRoom(_urlRoom);
+    } else if (currentRoom) {
+        setRoomCode(currentRoom);
+        joinRoom(currentRoom);
+    } else {
+        showWelcome();
+    }
+
+    // ── Safari BFCache 恢復處理 ──
+    window.addEventListener('pageshow', (e) => {
+        if (!e.persisted) return;
+        isSyncing = false;
+        ignoreNextSnapshot = false;
+        if (currentRoom) {
+            setSyncStatus('syncing', '重新連線…');
+            joinRoom(currentRoom);
+        }
+    });
+
+    // ── 定時檢查連線狀態（每 30 秒），斷線自動重連 ──
+    setInterval(() => {
+        if (!currentRoom) return;
+        if (document.querySelector('.modal.active')) return; // modal 開著時不重連
+        firebase.database().ref('.info/connected')
+            .once('value')
+            .then(snap => {
+                if (snap.val() === false) {
+                    joinRoom(currentRoom);
+                }
+            })
+            .catch(() => {}); // 靜默處理錯誤，不影響使用者
+    }, 30000);
+    </script>
+</body>
+</html>
