@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="theme-color" content="#00A8A8">
     <!-- 版本號：每次上傳 GitHub 時更新，控制快取更新 -->
-    <meta name="version" content="20250521-14">
+    <meta name="version" content="20250521-15">
     <title>旅遊行程規劃</title>
 
     <!-- Open Graph：控制 LINE / FB / iMessage 連結預覽 -->
@@ -1278,6 +1278,42 @@
             border-color: var(--primary);
             box-shadow: 0 0 0 3px rgba(0,168,168,0.12);
         }
+
+        .room-hist-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            background: var(--light);
+            border: 1.5px solid var(--border);
+            border-radius: 12px;
+            padding: 10px 12px;
+            margin-bottom: 8px;
+            cursor: pointer;
+            transition: all 0.15s;
+        }
+        .room-hist-item:hover {
+            border-color: var(--primary);
+            box-shadow: 0 2px 10px rgba(0,168,168,0.15);
+        }
+        .room-hist-item.current {
+            background: rgba(0,168,168,0.1);
+            border-color: var(--primary);
+        }
+        .room-hist-emoji { font-size: 20px; flex-shrink: 0; }
+        .room-hist-body { flex: 1; min-width: 0; text-align: left; }
+        .room-hist-title {
+            font-size: 13px; font-weight: 700; color: var(--dark);
+            white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+        }
+        .room-hist-code {
+            font-size: 11px; font-weight: 800; letter-spacing: 1.5px;
+            color: var(--primary); font-variant-numeric: tabular-nums;
+        }
+        .room-hist-del {
+            background: none; border: none; color: #bbb; font-size: 16px;
+            cursor: pointer; padding: 4px 6px; flex-shrink: 0; line-height: 1;
+        }
+        .room-hist-del:hover { color: var(--danger); }
 
         .room-divider {
             display: flex;
@@ -4358,6 +4394,11 @@
             <h2>🔗 共同編輯</h2>
             <p>建立新房間或輸入他人的房間碼<br>加入同一份行程即時同步</p>
 
+            <div id="roomHistoryWrap" style="display:none;text-align:left;margin-bottom:16px;">
+                <div style="font-size:12px;font-weight:800;color:var(--primary);margin-bottom:8px;">📂 我的房間</div>
+                <div id="roomHistoryList"></div>
+            </div>
+
             <div id="roomNewSection">
                 <div class="room-code-display" id="roomNewCode">––––––</div>
                 <button class="btn-save" style="width:100%;margin-bottom:8px;" onclick="joinRoom(document.getElementById('roomNewCode').textContent)">
@@ -4483,11 +4524,59 @@
         return Array.from({ length: 6 }, () => chars[Math.floor(Math.random() * chars.length)]).join('');
     }
 
+    // ── 房間歷史記錄（記住我加入過的房間碼）──
+    function getRoomHistory() {
+        try { return JSON.parse(localStorage.getItem('okinawaRoomHistory') || '[]'); }
+        catch (e) { return []; }
+    }
+    function saveRoomHistory(list) {
+        try { localStorage.setItem('okinawaRoomHistory', JSON.stringify(list)); } catch (e) {}
+    }
+    function addRoomHistory(code, title, emoji) {
+        if (!code) return;
+        let list = getRoomHistory().filter(r => r.code !== code);
+        list.unshift({ code, title: title || '', emoji: emoji || '🌏' });
+        saveRoomHistory(list.slice(0, 20)); // 最多留 20 個
+    }
+    function updateRoomHistoryMeta(code, title, emoji) {
+        let list = getRoomHistory();
+        const r = list.find(x => x.code === code);
+        if (!r) { addRoomHistory(code, title, emoji); return; }
+        if (title) r.title = title;
+        if (emoji) r.emoji = emoji;
+        saveRoomHistory(list);
+    }
+    function removeRoomHistory(code, ev) {
+        if (ev) ev.stopPropagation();
+        saveRoomHistory(getRoomHistory().filter(r => r.code !== code));
+        renderRoomHistory();
+    }
+    function renderRoomHistory() {
+        const wrap = document.getElementById('roomHistoryWrap');
+        const listEl = document.getElementById('roomHistoryList');
+        if (!wrap || !listEl) return;
+        const list = getRoomHistory();
+        if (!list.length) { wrap.style.display = 'none'; listEl.innerHTML = ''; return; }
+        wrap.style.display = 'block';
+        listEl.innerHTML = list.map(r => `
+            <div class="room-hist-item ${r.code === currentRoom ? 'current' : ''}"
+                 onclick="joinRoom('${r.code}')">
+                <span class="room-hist-emoji">${r.emoji || '🌏'}</span>
+                <div class="room-hist-body">
+                    <div class="room-hist-title">${(r.title || '（未命名行程）').replace(/</g,'&lt;')}</div>
+                    <div class="room-hist-code">${r.code}${r.code === currentRoom ? ' · 使用中' : ''}</div>
+                </div>
+                <button class="room-hist-del" title="從清單移除"
+                        onclick="removeRoomHistory('${r.code}', event)">✕</button>
+            </div>`).join('');
+    }
+
     // ── 顯示房間 Modal ──
     function showRoomModal() {
         const code = genCode();
         document.getElementById('roomNewCode').textContent = code;
         document.getElementById('roomJoinInput').value = '';
+        renderRoomHistory();
         document.getElementById('roomModalOverlay').style.display = 'flex';
     }
 
@@ -4520,7 +4609,10 @@
         ignoreNextSnapshot = false; // 防止 Safari BFCache 殘留
 
         currentRoom = code;
-        if (!_isReadonly) localStorage.setItem('okinawaRoom', code);
+        if (!_isReadonly) {
+            localStorage.setItem('okinawaRoom', code);
+            addRoomHistory(code); // 記錄到「我的房間」清單
+        }
         setRoomCode(code);
         setSyncStatus('syncing', '連線中…');
 
@@ -4580,6 +4672,10 @@
                 appData = snap.val();
                 migrateData();
                 if (!document.body.classList.contains('view-mode')) saveStorage('okinawaData', appData);
+                // 更新「我的房間」清單顯示的行程名稱
+                if (!_isReadonly && appData.trip) {
+                    updateRoomHistoryMeta(code, appData.trip.title, appData.trip.emoji);
+                }
                 initBanner();
                 renderTripHeader();
                 renderItinerary();
