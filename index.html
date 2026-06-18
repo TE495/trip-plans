@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="theme-color" content="#00A8A8">
     <!-- 版本號：每次上傳 GitHub 時更新，控制快取更新 -->
-    <meta name="version" content="20250521-11">
+    <meta name="version" content="20250521-14">
     <title>旅遊行程規劃</title>
 
     <!-- Open Graph：控制 LINE / FB / iMessage 連結預覽 -->
@@ -1779,6 +1779,7 @@
                 <button class="sync-btn" onclick="showRoomModal()">換房間</button>
                 <button class="sync-btn" onclick="shareRoom()">邀請</button>
                 <button class="sync-btn" onclick="shareReadonly()">🔗分享連結</button>
+                <a class="sync-btn" href="admin.html" target="_blank" style="text-decoration:none;display:inline-flex;align-items:center;">🗂️管理</a>
             </div>
             <div class="readonly-banner">🤓僅供檢視</div>
             <h1 id="tripTitle" onclick="openTripModal()" style="cursor:pointer;margin-top:22px;" title="點擊編輯">🇯🇵 沖繩之旅</h1>
@@ -4399,7 +4400,9 @@
         }
         db = firebase.database();
 
-        // Firebase 連線狀態監聽：斷線立刻重連（解決 Safari WebSocket 1006 問題）
+        // Firebase 連線狀態監聽（解決 Safari WebSocket 1006 問題）
+        // 重點：斷線時用 goOffline/goOnline 重置「連線層」，而非重掛監聽器；
+        // 連回時自動恢復狀態。重連動作交給 forceReconnect()，避免多處重複呼叫。
         let _connectedFirstCall = true;
         db.ref('.info/connected').on('value', snap => {
             const connected = snap && snap.val() === true;
@@ -4407,10 +4410,14 @@
                 _connectedFirstCall = false;
                 return; // 忽略第一次（初始化時的狀態）
             }
-            if (!connected && currentRoom) {
-                // 斷線了，立刻嘗試重連
+            if (!currentRoom) return;
+            if (connected) {
+                // 連線層已恢復，資料監聽器會自動重新收到 snapshot
+                if (!isSyncing) setSyncStatus('connected', '已同步');
+            } else {
+                // 斷線：重置連線層（單純重掛監聽器對死掉的 WebSocket 無效）
                 setSyncStatus('syncing', '重新連線…');
-                setTimeout(() => joinRoom(currentRoom), 1000); // 延遲 1 秒避免瞬間重試
+                forceReconnect();
             }
         }, err => {
             console.error('Firebase connected listener error:', err);
@@ -4429,6 +4436,27 @@
         lbl.textContent = label;
         // 逾時或失敗時顯示重試按鈕
         if (retry) retry.style.display = (state === 'error') ? '' : 'none';
+    }
+
+    // ── 強制重置連線層（Safari WebSocket 1006 的正解）──
+    // 死掉的 WebSocket 無法靠重掛監聽器復活，必須 goOffline → goOnline。
+    // 內建防抖，避免多個觸發來源（visibilitychange / .info/connected / 輪詢）短時間內重複重置。
+    let _reconnecting = false;
+    function forceReconnect() {
+        if (!db || _reconnecting) return;
+        _reconnecting = true;
+        try {
+            db.goOffline();
+            setTimeout(() => {
+                try { db.goOnline(); } catch (e) { console.error('goOnline failed', e); }
+                // 重新確保資料監聽器存在（房間沒變時不會重複疊加，joinRoom 會先 off 舊的）
+                if (currentRoom) joinRoom(currentRoom);
+                setTimeout(() => { _reconnecting = false; }, 1500);
+            }, 300);
+        } catch (e) {
+            console.error('forceReconnect failed', e);
+            _reconnecting = false;
+        }
     }
 
     function retryConnection() {
@@ -4517,7 +4545,7 @@
             } else {
                 joinRoom._retryCount = 0;
             }
-        }, 20000);
+        }, 10000);
 
         fbListener = ref.on('value', snap => {
             resolved = true;
@@ -4704,23 +4732,54 @@
         ignoreNextSnapshot = false;
         if (currentRoom) {
             setSyncStatus('syncing', '重新連線…');
-            joinRoom(currentRoom);
+            forceReconnect();
         }
     });
 
-    // ── 定時檢查連線狀態（每 30 秒），斷線自動重連 ──
+    // ── 分頁重新變可見時重連（Safari 最可靠的觸發點）──
+    // Safari 切到背景/鎖屏會關閉 WebSocket，回到前景時用此事件重置連線層。
+    document.addEventListener('visibilitychange', () => {
+        if (document.visibilityState !== 'visible') return;
+        if (!currentRoom) return;
+        if (document.querySelector('.modal.active')) return; // 編輯中不打斷
+        forceReconnect();
+    });
+
+    // ── 定時檢查連線狀態（每 30 秒）作為最後保險，斷線自動重連 ──
     setInterval(() => {
         if (!currentRoom) return;
+        if (document.visibilityState !== 'visible') return; // 背景時不動作
         if (document.querySelector('.modal.active')) return; // modal 開著時不重連
-        firebase.database().ref('.info/connected')
+        db.ref('.info/connected')
             .once('value')
             .then(snap => {
-                if (snap.val() === false) {
-                    joinRoom(currentRoom);
-                }
+                if (snap.val() === false) forceReconnect();
             })
             .catch(() => {}); // 靜默處理錯誤，不影響使用者
     }, 30000);
+    </script>
+
+    <!-- Service Worker 註冊（離線快取 + 版本更新）-->
+    <script>
+    if ('serviceWorker' in navigator) {
+        window.addEventListener('load', () => {
+            navigator.serviceWorker.register('sw.js')
+                .then((reg) => {
+                    // 偵測到新版 SW 時，安裝完成後自動套用
+                    reg.addEventListener('updatefound', () => {
+                        const sw = reg.installing;
+                        if (!sw) return;
+                        sw.addEventListener('statechange', () => {
+                            if (sw.state === 'installed' && navigator.serviceWorker.controller) {
+                                // 已有新版本就緒，下次重新整理即生效
+                                console.log('新版本已就緒，重新整理即可更新。');
+                            }
+                        });
+                    });
+                })
+                .catch((err) => console.warn('SW 註冊失敗：', err));
+        });
+    }
     </script>
 </body>
 </html>
