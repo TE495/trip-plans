@@ -3193,12 +3193,12 @@
                                     <div class="activity-images">
                                         ${a.images.map((img, i) => `
                                             <img class="activity-thumb" src="${img}" alt=""
-                                                onclick="openLightbox(${a.id}, ${i})">
+                                                onclick="openLightbox('${a.id}', ${i})">
                                         `).join('')}
-                                        <div class="activity-thumb-add" onclick="triggerActivityImgUpload(${a.id})" title="新增圖片">＋</div>
+                                        <div class="activity-thumb-add" onclick="triggerActivityImgUpload('${a.id}')" title="新增圖片">＋</div>
                                     </div>` : `
                                     <div class="activity-images">
-                                        <div class="activity-thumb-add" onclick="triggerActivityImgUpload(${a.id})" title="新增圖片">📎</div>
+                                        <div class="activity-thumb-add" onclick="triggerActivityImgUpload('${a.id}')" title="新增圖片">📎</div>
                                     </div>`}
                                     <div class="activity-buttons">
                                         <button class="btn-sm btn-edit"   onclick="openItem('activity', '${a.id}')\">✏️ 編輯</button>
